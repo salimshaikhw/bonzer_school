@@ -1,0 +1,30 @@
+// Add this line to the AddEntityServices method in API/Extensions/ServiceRegistrationExtensions.cs
+// Place it after the existing services registrations (around line 150-155)
+
+// In ServiceRegistrationExtensions.cs, add this line after the other fee-related services:
+services.AddScoped<IRemainingFeesService, RemainingFeesService>();
+
+// The placement should be near other fee services like:
+/*
+    services.AddScoped<IFeeHeadService, FeeHeadService>();
+    services.AddScoped<IFeeInstallmentService, FeeInstallmentService>();
+    services.AddScoped<IFeeStructureService, FeeStructureService>();
+    
+    // ADD THIS LINE:
+    services.AddScoped<IRemainingFeesService, RemainingFeesService>();
+    
+    services.AddScoped<IGradeMasterService, GradeMasterService>();
+*/
+
+// COMPLETE EXAMPLE - Add to ServiceRegistrationExtensions.cs:
+/*
+            services.AddScoped<IFeeStudentService, FeeStudentService>();
+            services.AddScoped<IParentFeeService, ParentFeeService>();
+            services.AddScoped<IFeeAnalyticsService, FeeAnalyticsService>();
+            
+            // Add the remaining fees service
+            services.AddScoped<IRemainingFeesService, RemainingFeesService>();
+
+            // Exam analytics (student, class, teacher dashboards)
+            services.AddScoped<IExamAnalyticsService, ExamAnalyticsService>();
+*/

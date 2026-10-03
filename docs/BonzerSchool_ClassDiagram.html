@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BonzerSchool ERP - Class Diagram</title>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+  </script>
+  <style>
+    body { font-family: Segoe UI, sans-serif; margin: 24px; max-width: 1200px; margin-left: auto; margin-right: auto; }
+    h1 { font-size: 1.5rem; }
+    .instructions { background: #f0f0f0; padding: 12px; border-radius: 8px; margin-bottom: 20px; }
+    .instructions p { margin: 0 0 8px 0; }
+    .mermaid { text-align: center; }
+    @media print { .instructions { display: none; } }
+  </style>
+</head>
+<body>
+  <h1>BonzerSchool ERP – Class Diagram</h1>
+  <div class="instructions">
+    <p><strong>To save as PDF:</strong> Use <kbd>Ctrl+P</kbd> (or Cmd+P on Mac) → choose <strong>Save as PDF</strong> (or Microsoft Print to PDF) → Save.</p>
+    <p>You can also use the PlantUML file in the <code>docs</code> folder: open <a href="https://www.plantuml.com/plantuml/uml" target="_blank">PlantUML Online</a>, paste the contents of <code>BonzerSchool_ClassDiagram.puml</code>, then export as PDF.</p>
+  </div>
+  <pre class="mermaid">
+classDiagram
+  direction TB
+  namespace API {
+    class StudentController {
+      -IStudentService _studentService
+      -ILogger _logger
+      +GetAll() IActionResult
+      +GetById(id) IActionResult
+      +Create(request) IActionResult
+      +Update(id, request) IActionResult
+      +Delete(id) IActionResult
+    }
+    class TcCertificateController {
+      -ITcCertificateService _service
+      +Create(request) IActionResult
+      +GetById(id) IActionResult
+      +HeadClerkApprove(tcId, staffId) Task
+      +PrincipalApprove(tcId, staffId) Task
+      +Issue(tcId, staffId) Task
+      +Reject(tcId, staffId, reason) Task
+    }
+    class BonafideCertificateController
+    class HallTicketController
+  }
+  namespace Application {
+    class IStudentService {
+      <<interface>>
+      +GetAllAsync() Task
+      +GetByIdAsync(id) Task
+      +CreateAsync(request) Task
+      +UpdateAsync(id, request) Task
+      +DeleteAsync(id) Task
+    }
+    class ITcCertificateService {
+      <<interface>>
+      +CreateAsync(request) Task
+      +GetByIdAsync(id) Task
+      +GetByStudentAsync(studentId) Task
+      +InitiateClearanceAsync(tcId) Task
+      +HeadClerkApproveAsync(tcId, staffId) Task
+      +PrincipalApproveAsync(tcId, staffId) Task
+      +IssueAsync(tcId, staffId) Task
+      +RejectAsync(tcId, staffId, reason) Task
+    }
+    class IRepository {
+      <<interface>>
+      +GetAllAsync() Task
+      +GetByIdAsync(id) Task
+      +AddAsync(entity) Task
+      +UpdateAsync(entity) Task
+      +DeleteAsync(id) Task
+      +Query(predicate) IQueryable
+    }
+    class ITcNumberGenerator {
+      <<Strategy - Behavioral>>
+      +GenerateAsync(academicYearId, classId) Task
+    }
+    class ITcApprovalHandler {
+      <<Chain of Responsibility - Behavioral>>
+      +SetNext(next) ITcApprovalHandler
+      +HandleAsync(request) Task
+    }
+    class TcApprovalRequest {
+      +TcId Guid
+      +StaffId Guid
+      +Action string
+      +Reason string
+    }
+  }
+  namespace Infrastructure {
+    class StudentService {
+      -IStudentRepository _studentRepository
+      -IUnitOfWork _unitOfWork
+      -IMapper _mapper
+      -ICacheService _cacheService
+      +GetAllAsync() Task
+      +GetByIdAsync(id) Task
+      +CreateAsync(request) Task
+      +UpdateAsync(id, request) Task
+    }
+    class TcCertificateService {
+      -ITcCertificateRepository _tcRepo
+      -ITcNumberGenerator _tcNumberGenerator
+      -ITcApprovalHandler _tcApprovalChain
+      +CreateAsync(request) Task
+      +GetByIdAsync(id) Task
+      +HeadClerkApproveAsync(tcId, staffId) Task
+      +PrincipalApproveAsync(tcId, staffId) Task
+    }
+    class BonafideCertificateService
+    class HallTicketService
+    class Repository {
+      <<Repository<T>>
+      -DbContext _context
+      -DbSet^T^ _dbSet
+      +GetAllAsync() Task
+      +GetByIdAsync(id) Task
+      +AddAsync(entity) Task
+      +UpdateAsync(entity) Task
+      +DeleteAsync(id) Task
+      +Query(predicate) IQueryable
+    }
+    class TcNumberGenerator {
+      <<Strategy>>
+      +GenerateAsync(academicYearId, classId) Task
+    }
+    class TcApprovalHandlerBase {
+      <<Chain of Responsibility>>
+      -ITcApprovalHandler _next
+      +SetNext(next) ITcApprovalHandler
+      +HandleAsync(request) Task
+    }
+    class HeadClerkApprovalHandler
+    class ClassTeacherApprovalHandler
+    class PrincipalApprovalHandler
+    class IssueTcHandler
+    class RejectTcHandler
+    class BonzerSchoolDbContext {
+      +Students DbSet
+      +TcCertificates DbSet
+      +OnModelCreating(builder) void
+    }
+  }
+  namespace Domain {
+    class Student {
+      +Id Guid
+      +FirstName string
+      +LastName string
+      +Dob DateOnly
+      +AcademicYearId Guid
+      +ClassId Guid
+      +DivisionId Guid
+      +AparId string
+    }
+    class TcCertificate {
+      +Id Guid
+      +StudentId Guid
+      +TcNumber string
+      +Sequence int
+      +AcademicYearId Guid
+      +ClassId Guid
+      +Status string
+    }
+    class BonafideCertificate
+    class HallTicket
+  }
+  StudentController --> IStudentService : uses
+  TcCertificateController --> ITcCertificateService : uses
+  BonafideCertificateController --> BonafideCertificateService : uses
+  HallTicketController --> HallTicketService : uses
+  IStudentService <|.. StudentService : implements
+  ITcCertificateService <|.. TcCertificateService : implements
+  IRepository <|.. Repository : implements
+  StudentService --> IRepository : IStudentRepository
+  StudentService --> IUnitOfWork : uses
+  TcCertificateService --> ITcNumberGenerator : uses
+  TcCertificateService --> ITcApprovalHandler : uses
+  ITcNumberGenerator <|.. TcNumberGenerator : implements
+  ITcApprovalHandler <|.. TcApprovalHandlerBase : implements
+  TcApprovalHandlerBase <|-- HeadClerkApprovalHandler : extends
+  TcApprovalHandlerBase <|-- ClassTeacherApprovalHandler : extends
+  TcApprovalHandlerBase <|-- PrincipalApprovalHandler : extends
+  TcApprovalHandlerBase <|-- IssueTcHandler : extends
+  TcApprovalHandlerBase <|-- RejectTcHandler : extends
+  ITcApprovalHandler ..> TcApprovalRequest : uses
+  Repository --> BonzerSchoolDbContext : uses
+  TcCertificateService --> ITcCertificateRepository : uses
+  Repository --> Student : persists
+  Repository --> TcCertificate : persists
+  BonafideCertificateService --> ITcNumberGenerator : uses
+  HallTicketService --> IHallTicketNumberGenerator : uses
+  </pre>
+</body>
+</html>

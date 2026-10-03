@@ -1,0 +1,48 @@
+BonzerSchool API — spreadsheet reference (CSV for Excel / Google Sheets)
+========================================================================
+
+FILES IN THIS FOLDER
+--------------------
+01_Endpoints_All.csv
+  • Every HTTP route in the API (auto-generated from controller code).
+  • Columns: Module | Controller | HttpMethod | RouteTemplate | UrlPath
+  • UrlPath is the path to append after your API base URL (e.g. https://localhost:5001).
+  • TIP: In Excel, turn on Filter (Data > Filter) and filter by Module to study one area.
+
+02_Controllers_Summary.csv
+  • One row per controller with a short "What it does" and "Typical use".
+  • Read this first if the big endpoint list feels overwhelming.
+
+03_Database_Tables_DbContext.csv
+  • Maps DbSet names in BonzerSchoolDbContext to plain-English purpose.
+
+PRE-GENERATED EXCEL (IN THIS FOLDER)
+------------------------------------
+Open or copy: **BonzerSchool_API_Endpoints.xlsx** (same columns as below).
+Regenerate after API changes by running the GET endpoint below or rebuilding from code.
+
+LIVE EXCEL FROM RUNNING API
+---------------------------
+GET (browser or Postman, no auth required):
+
+  {your-api-base}/api/ApiDocumentation/endpoints-excel
+
+Example: http://localhost:5102/api/ApiDocumentation/endpoints-excel
+
+Downloads BonzerSchool_API_Endpoints.xlsx with columns:
+Controller Name, Method Name, HTTP Verb, Route, Parameters, Description
+(Descriptions come from XML doc comments where present.)
+
+FULL NARRATIVE DOC
+------------------
+See ..\API_DOCUMENTATION.md for detailed explanations, auth notes, and file downloads.
+
+HOW TO OPEN IN EXCEL
+--------------------
+1. Double-click a .csv file, or Excel > Open > pick the file.
+2. If columns look wrong: Data > From Text/CSV > choose UTF-8.
+3. For a workbook with multiple sheets: import each CSV into its own sheet (copy/paste or Insert > Sheet).
+
+GOOGLE SHEETS
+-------------
+File > Import > Upload > select CSV > Replace spreadsheet (or new sheet).

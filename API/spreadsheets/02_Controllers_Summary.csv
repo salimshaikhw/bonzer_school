@@ -1,0 +1,47 @@
+Module,Controller,WhatItDoes,TypicalUse
+Login & tokens,Auth,Issue JWT access + refresh tokens; revoke refresh,SPA login screen
+Users & roles,User,Register confirm email password reset roles profile,Account management
+Users & roles,Role,CRUD domain Role records (app table),Custom roles if used
+Users & roles,ParentUser,Link parent records to students,Parent portal setup
+Organization & setup,AcademicYear,School years (active dates),Scope fees attendance
+Organization & setup,Branch,Campuses / locations,Multi-branch schools
+Organization & setup,SchoolGroup,Tenant / school group,Multi-tenant
+Organization & setup,Class,Grades levels per branch,Class lists
+Organization & setup,Division,Sections A B within a class,Roster sections
+Organization & setup,Department,Departments,Org chart
+Organization & setup,Medium,Language medium,Reference data
+Organization & setup,InstitutionType,Institution kind,Reference data
+Staff & assignments,Staff,Staff directory email links to login,Who teaches whom
+Staff & assignments,StaffRole,Staff role assignments,Permissions
+Staff & assignments,ClassTeacherMap,Class teacher per class division,Attendance bulk import
+Staff & assignments,TeacherSubjectMap,Teacher teaches subject,Timetable marks
+Students / admission,Student,CRUD search analytics bulk Excel lifecycle,Main student API
+Students / admission,StudentSubject,Optional subject enrollment,Electives
+Curriculum,Subject,Subject master,Catalog
+Curriculum,ClassSubjectMap,Subjects per class year,Curriculum setup
+Curriculum,Timetable,Periods schedule,Timetable UI
+Curriculum,Homework,Homework assignments,Homework feature
+Attendance,Attendance,Mark bulk import locks reports exports,Daily attendance
+Attendance,AttendanceHoliday,Weekly off + calendar holidays,Holiday rules
+Fees & finance,Fees,Dashboards analytics outstanding,Finance KPIs
+Fees & finance,FeeHead,Fee categories,Tuition transport
+Fees & finance,FeeStructure,Amounts per head installment,Fee rules
+Fees & finance,FeeInstallment,Due schedule,Installments
+Fees & finance,ClassFeeMap,Class to fee amounts,Fee per class
+Fees & finance,Invoice,Invoices statements,Billing
+Fees & finance,Payment,Record payments receipt PDF,Cashier
+Fees & finance,ParentFees,Parent pay collect-pay,Parent portal fees
+Exams & results,Exam,Exam sessions,Exam setup
+Exams & results,ExamType,Exam types term annual,Catalog
+Exams & results,ExamSubject,Subjects in an exam,Papers
+Exams & results,ExamSubjectComponent,Components marks weightage,Breakdown
+Exams & results,ExamComponentType,Theory practical etc,Labels
+Exams & results,Mark,Student marks,Marks entry
+Exams & results,StudentResult,Aggregated results,Report cards
+Exams & results,GradeMaster,Grade bands A B C,Grading
+Exams & results,HallTicket,Hall tickets,Exam admit cards
+Exams & results,ExamAnalytics,Trends distributions teachers,Analytics
+Certificates,BonafideCertificate,Bonafide certificate,Study certificate
+Certificates,TcCertificate,TC workflow approvals,Transfer cert
+System,Notification,In-app notifications,Alerts
+System,AuditLog,Audit trail,Compliance

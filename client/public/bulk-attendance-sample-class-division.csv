@@ -1,0 +1,5 @@
+RollNumber,ClassId,DivisionName,AttendanceDate,Status,LeaveType,IsHoliday
+1,REPLACE_WITH_CLASS_GUID,A,2026-03-15,Present,,
+2,REPLACE_WITH_CLASS_GUID,A,2026-03-15,Absent,,
+3,REPLACE_WITH_CLASS_GUID,A,2026-03-15,Leave,Sick,false
+4,REPLACE_WITH_CLASS_GUID,A,2026-03-15,P,,true

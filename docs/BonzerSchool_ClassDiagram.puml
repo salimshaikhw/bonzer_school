@@ -1,0 +1,224 @@
+@startuml BonzerSchool Class Diagram
+title BonzerSchool ERP - Class Diagram (Layered + Design Patterns)
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+
+package "API (Presentation)" as API {
+  class StudentController {
+    - _studentService : IStudentService
+    - _logger : ILogger
+    + GetAll() : IActionResult
+    + GetById(id) : IActionResult
+    + Create(request) : IActionResult
+    + Update(id, request) : IActionResult
+    + Delete(id) : IActionResult
+  }
+  class TcCertificateController {
+    - _service : ITcCertificateService
+    - _logger : ILogger
+    + Create(request) : IActionResult
+    + GetById(id) : IActionResult
+    + GetByStudent(studentId) : IActionResult
+    + InitiateClearance(tcId) : Task
+    + HeadClerkApprove(tcId, staffId) : Task
+    + PrincipalApprove(tcId, staffId) : Task
+    + Issue(tcId, staffId) : Task
+    + Reject(tcId, staffId, reason) : Task
+  }
+  class BonafideCertificateController
+  class HallTicketController
+}
+
+package "Application (Abstractions)" as App {
+  interface IStudentService {
+    + GetAllAsync() : Task<IEnumerable<StudentResponse>>
+    + GetByIdAsync(id) : Task<StudentResponse?>
+    + CreateAsync(request) : Task<StudentResponse>
+    + UpdateAsync(id, request) : Task<StudentResponse?>
+    + DeleteAsync(id) : Task<bool>
+  }
+  interface ITcCertificateService {
+    + CreateAsync(request) : Task<TcCertificateResponse>
+    + GetByIdAsync(id) : Task<TcCertificateResponse?>
+    + GetByStudentAsync(studentId) : Task<IEnumerable<TcCertificateResponse>>
+    + InitiateClearanceAsync(tcId) : Task
+    + HeadClerkApproveAsync(tcId, staffId) : Task
+    + ClassTeacherApproveAsync(tcId, staffId) : Task
+    + PrincipalApproveAsync(tcId, staffId) : Task
+    + IssueAsync(tcId, staffId) : Task
+    + RejectAsync(tcId, staffId, reason) : Task
+  }
+  interface "IRepository<T>" as IRepo {
+    + GetAllAsync() : Task<IEnumerable<T>>
+    + GetByIdAsync(id) : Task<T>
+    + AddAsync(entity) : Task
+    + UpdateAsync(entity) : Task
+    + DeleteAsync(id) : Task
+    + FindAllAsync(predicate) : Task<List<T>>
+    + Query(predicate) : IQueryable<T>
+  }
+  interface IUnitOfWork {
+    + Commit() : Task
+    + Rollback() : void
+  }
+  interface ITcNumberGenerator <<Strategy>> {
+    + GenerateAsync(academicYearId, classId) : Task<(string, int)>
+  }
+  interface IBonafideNumberGenerator <<Strategy>>
+  interface IHallTicketNumberGenerator <<Strategy>>
+  interface ITcApprovalHandler <<Chain of Responsibility>> {
+    + SetNext(next) : ITcApprovalHandler
+    + HandleAsync(request) : Task
+  }
+  class TcApprovalRequest {
+    + TcId : Guid
+    + StaffId : Guid
+    + Action : string
+    + Reason : string?
+  }
+}
+
+package "Infrastructure (Implementation)" as Infra {
+  class StudentService {
+    - _studentRepository : IStudentRepository
+    - _unitOfWork : IUnitOfWork
+    - _mapper : IMapper
+    - _cacheService : ICacheService
+    + GetAllAsync() : Task
+    + GetByIdAsync(id) : Task
+    + CreateAsync(request) : Task
+    + UpdateAsync(id, request) : Task
+  }
+  class TcCertificateService {
+    - _tcRepo : ITcCertificateRepository
+    - _tcNumberGenerator : ITcNumberGenerator
+    - _tcApprovalChain : ITcApprovalHandler
+    + CreateAsync(request) : Task
+    + GetByIdAsync(id) : Task
+    + HeadClerkApproveAsync(tcId, staffId) : Task
+    + PrincipalApproveAsync(tcId, staffId) : Task
+  }
+  class BonafideCertificateService
+  class HallTicketService
+  class "Repository<T>" as RepoGen {
+    - _context : DbContext
+    - _dbSet : DbSet<T>
+    + GetAllAsync() : Task
+    + GetByIdAsync(id) : Task
+    + AddAsync(entity) : Task
+    + UpdateAsync(entity) : Task
+    + DeleteAsync(id) : Task
+    + Query(predicate) : IQueryable<T>
+  }
+  class StudentRepository
+  class TcCertificateRepository
+  class TcNumberGenerator <<Strategy>> {
+    + GenerateAsync(academicYearId, classId) : Task<(string, int)>
+  }
+  class BonafideNumberGenerator <<Strategy>>
+  class HallTicketNumberGenerator <<Strategy>>
+  abstract class TcApprovalHandlerBase <<Chain of Responsibility>> {
+    - _next : ITcApprovalHandler
+    + SetNext(next) : ITcApprovalHandler
+    + HandleAsync(request) : Task
+  }
+  class HeadClerkApprovalHandler
+  class ClassTeacherApprovalHandler
+  class PrincipalApprovalHandler
+  class IssueTcHandler
+  class RejectTcHandler
+  class BonzerSchoolDbContext {
+    + Students : DbSet<Student>
+    + TcCertificates : DbSet<TcCertificate>
+    + OnModelCreating(builder) : void
+  }
+}
+
+package "Domain (Entities)" as Domain {
+  class Student {
+    + Id : Guid
+    + FirstName : string
+    + LastName : string
+    + Dob : DateOnly?
+    + AcademicYearId : Guid?
+    + ClassId : Guid?
+    + DivisionId : Guid?
+    + AparId : string?
+  }
+  class TcCertificate {
+    + Id : Guid
+    + StudentId : Guid
+    + TcNumber : string
+    + Sequence : int
+    + AcademicYearId : Guid?
+    + ClassId : Guid?
+    + Status : string
+  }
+  class BonafideCertificate
+  class HallTicket
+  class AcademicYear
+  class Class
+  class Division
+}
+
+' API -> Application
+StudentController --> IStudentService
+TcCertificateController --> ITcCertificateService
+BonafideCertificateController --> IBonafideCertificateService
+HallTicketController --> IHallTicketService
+
+' Application -> Infrastructure (implements)
+IStudentService <|.. StudentService
+ITcCertificateService <|.. TcCertificateService
+IBonafideCertificateService <|.. BonafideCertificateService
+IHallTicketService <|.. HallTicketService
+IRepo <|.. RepoGen
+IRepo <|.. StudentRepository
+IRepo <|.. TcCertificateRepository
+
+' Strategy pattern
+ITcNumberGenerator <|.. TcNumberGenerator
+IBonafideNumberGenerator <|.. BonafideNumberGenerator
+IHallTicketNumberGenerator <|.. HallTicketNumberGenerator
+TcCertificateService --> ITcNumberGenerator
+BonafideCertificateService --> IBonafideNumberGenerator
+HallTicketService --> IHallTicketNumberGenerator
+
+' Chain of Responsibility
+ITcApprovalHandler <|.. TcApprovalHandlerBase
+TcApprovalHandlerBase <|-- HeadClerkApprovalHandler
+TcApprovalHandlerBase <|-- ClassTeacherApprovalHandler
+TcApprovalHandlerBase <|-- PrincipalApprovalHandler
+TcApprovalHandlerBase <|-- IssueTcHandler
+TcApprovalHandlerBase <|-- RejectTcHandler
+TcCertificateService --> ITcApprovalHandler
+ITcApprovalHandler ..> TcApprovalRequest : uses
+
+' Repositories use DbContext
+RepoGen --> BonzerSchoolDbContext : uses
+StudentRepository --> Student : persists
+TcCertificateRepository --> TcCertificate : persists
+
+' Services use Repositories
+StudentService --> IRepo : IStudentRepository
+StudentService --> IUnitOfWork
+TcCertificateService --> ITcCertificateRepository
+TcCertificateService --> IStudentRepository
+
+' Notes
+note right of ITcNumberGenerator
+  **Design Pattern: Strategy (Behavioral)**
+  Encapsulates number generation algorithms
+  for TC, Bonafide, Hall Ticket
+end note
+note right of ITcApprovalHandler
+  **Design Pattern: Chain of Responsibility (Behavioral)**
+  TC approval workflow: Head Clerk → Class Teacher
+  → Principal → Issue / Reject
+end note
+note right of RepoGen
+  **Design Pattern: Repository**
+  Abstracts data access per entity
+end note
+
+@enduml

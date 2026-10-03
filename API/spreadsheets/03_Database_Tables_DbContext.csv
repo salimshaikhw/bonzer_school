@@ -1,0 +1,50 @@
+DbSetName,Purpose
+academic_years,Academic year master
+attendances,Daily attendance per student unique per student+date
+attendance_date_locks,Lock edits for class division date
+attendance_academic_year_locks,Lock whole year
+audit_logs,Audit trail
+branches,School branches weekly-off flags
+school_holidays,Branch calendar holidays
+classes,Class levels
+divisions,Sections within class
+class_fee_maps,Class to fee amount for year
+class_subject_maps,Subjects taught per class year
+class_teacher_maps,Class teacher assignment
+teacher_subject_maps,Teacher subject assignment
+departments,Departments
+mediums,Instruction medium
+institution_types,Institution type reference
+exams,Exam sessions
+exam_types,Exam type names
+exam_subjects,Subject papers in exam
+exam_subject_components,Components marks weightage
+exam_component_types,Component labels theory practical
+fee_heads,Fee category names
+fee_installments,Installment definitions
+fee_structures,Structured fee lines amounts
+grade_masters,Grade letter by percent range
+homework,Homework records
+timetables,Timetable rows
+invoices,Fee invoices
+invoice_items,Invoice line items
+marks,Student exam marks
+notifications,Notifications
+parent_users,Parent portal linkage
+payments,Payments
+payment_fee_lines,Payment allocation to fee lines
+roles,Domain roles table if used
+school_groups,Multi-tenant groups
+staff,Staff records
+staff_roles,Staff roles
+students,Student master
+student_results,Aggregated results
+student_subjects,Student subject enrollment
+subjects,Subject master
+tc_certificates,Transfer certificates
+bonafide_certificates,Bonafide certificates
+hall_tickets,Hall tickets
+leave_requests,Student leave
+attendance_correction_requests,Attendance correction workflow
+users,Legacy users table if present
+RefreshTokens,JWT refresh tokens Identity
