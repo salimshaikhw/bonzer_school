@@ -3,9 +3,8 @@ using System.Collections.Generic;
 
 namespace Application.ViewModels.Certificates;
 
-public class HallTicketResponse
+public class HallTicketResponse : AuditableResponse
 {
-    public Guid Id { get; set; }
     public string? TicketNumber { get; set; }
     public string? SeatNumber { get; set; }
     public string? ExamCentre { get; set; }

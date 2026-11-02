@@ -12,9 +12,8 @@ namespace Application.ViewModels.Notification
         public string? Message { get; set; }
         public DateTime? SentAt { get; set; }
     }
-    public class NotificationResponse
+    public class NotificationResponse : AuditableResponse
     {
-        public Guid Id { get; set; }
         public Guid? StudentId { get; set; }
         public Guid? BranchId { get; set; }
         public Guid? DivisionId { get; set; }

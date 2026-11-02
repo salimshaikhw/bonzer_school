@@ -14,11 +14,18 @@ namespace Application.Common.Helpers;
 /// <summary>Parses bulk attendance import from .xlsx, .xls (via NPOI), or .csv into <see cref="BulkAttendanceImportRowInput"/> rows.</summary>
 public static class BulkAttendanceImportFileParser
 {
+    // Compiled once, with a timeout, so content of an uploaded file cannot make matching run away.
+    private static readonly TimeSpan RegexTimeout = TimeSpan.FromMilliseconds(250);
+    private static readonly Regex Whitespace = new(@"\s+", RegexOptions.None, RegexTimeout);
+    private static readonly Regex IsoDate = new(@"^(\d{4})-(\d{2})-(\d{2})", RegexOptions.None, RegexTimeout);
+    private static readonly Regex DayMonthYear = new(@"^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})$", RegexOptions.None, RegexTimeout);
+    private static readonly Regex HexGuid = new("^[0-9a-fA-F]{32}$", RegexOptions.None, RegexTimeout);
+
     private static string NormHeader(string? h)
     {
         if (string.IsNullOrWhiteSpace(h)) return string.Empty;
         var s = h.Trim().ToLowerInvariant();
-        s = Regex.Replace(s, @"\s+", "");
+        s = Whitespace.Replace(s, "");
         return s.Replace("_", "");
     }
 
@@ -364,10 +371,10 @@ public static class BulkAttendanceImportFileParser
         d = default;
         if (DateOnly.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.None, out d))
             return true;
-        var m = Regex.Match(s, @"^(\d{4})-(\d{2})-(\d{2})");
+        var m = IsoDate.Match(s);
         if (m.Success && DateOnly.TryParse($"{m.Groups[1].Value}-{m.Groups[2].Value}-{m.Groups[3].Value}", out d))
             return true;
-        var slash = Regex.Match(s, @"^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})$");
+        var slash = DayMonthYear.Match(s);
         if (slash.Success)
         {
             var dd = int.Parse(slash.Groups[1].Value, CultureInfo.InvariantCulture);
@@ -392,7 +399,7 @@ public static class BulkAttendanceImportFileParser
     {
         var t = s.Trim().Replace("{", "").Replace("}", "");
         if (Guid.TryParse(t, out var g)) return g;
-        if (t.Length == 32 && Regex.IsMatch(t, "^[0-9a-fA-F]{32}$"))
+        if (t.Length == 32 && HexGuid.IsMatch(t))
         {
             var dashed =
                 $"{t[..8]}-{t.Substring(8, 4)}-{t.Substring(12, 4)}-{t.Substring(16, 4)}-{t.Substring(20, 8)}";

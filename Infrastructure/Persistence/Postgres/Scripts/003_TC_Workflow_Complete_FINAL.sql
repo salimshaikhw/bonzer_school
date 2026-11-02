@@ -145,7 +145,7 @@ CREATE TABLE IF NOT EXISTS tc_workflow_log (
     action_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     remarks             TEXT,
 
-    department_id       UUID,
+    department_id       UUID
     -- Set when actor_role = DEPARTMENT_CLEARANCE (which dept cleared)
 );
 

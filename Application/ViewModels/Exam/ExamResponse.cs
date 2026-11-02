@@ -1,8 +1,7 @@
 namespace Application.ViewModels.Exam;
 
-public class ExamResponse
+public class ExamResponse : AuditableResponse
 {
-    public Guid Id { get; set; }
     public string? Name { get; set; }
     public Guid? ExamTypeId { get; set; }
     public Guid? AcademicYearId { get; set; }
@@ -13,5 +12,4 @@ public class ExamResponse
     public DateOnly? EndDate { get; set; }
     public string? Status { get; set; }
     public bool? IsLocked { get; set; }
-    public DateTime? CreatedAt { get; set; }
 }

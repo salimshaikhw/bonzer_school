@@ -1,0 +1,28 @@
+# Keep the build context small and free of secrets / machine-specific files.
+**/bin/
+**/obj/
+**/Logs/
+**/*.user
+**/.vs/
+**/.vscode/
+**/.idea/
+.git/
+.github/
+docs/
+Scripts/
+_build*/
+.build-out/
+**/node_modules/
+**/*.log
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+**/appsettings.*.local.json
+**/secrets.json
+
+# Docker files themselves
+Dockerfile*
+docker-compose*.yml
+.dockerignore

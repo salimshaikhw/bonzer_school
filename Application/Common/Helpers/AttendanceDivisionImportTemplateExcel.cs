@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using Domain.Entities.Postgres.Scaffolded;
 using NPOI.XSSF.UserModel;
 
 namespace Application.Common.Helpers;

@@ -25,11 +25,9 @@ namespace Application.ViewModels.Staff
         public string? PreviousEmployer { get; set; }
         public int? YearsOfExperience { get; set; }
         public bool? IsActive { get; set; }
-        public DateTime? CreatedAt { get; set; }
     }
-    public class StaffResponse
+    public class StaffResponse : AuditableResponse
     {
-        public Guid Id { get; set; }
         public Guid? BranchId { get; set; }
         public Guid? DeptId { get; set; }
         public string? StaffCode { get; set; }
@@ -51,6 +49,5 @@ namespace Application.ViewModels.Staff
         public string? PreviousEmployer { get; set; }
         public int? YearsOfExperience { get; set; }
         public bool? IsActive { get; set; }
-        public DateTime? CreatedAt { get; set; }
     }
 }

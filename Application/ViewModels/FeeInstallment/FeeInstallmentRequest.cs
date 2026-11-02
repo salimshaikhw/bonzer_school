@@ -9,6 +9,5 @@ namespace Application.ViewModels.FeeInstallment
         public string? InstallmentName { get; set; }
         public DateOnly? DueDate { get; set; }
         public DateOnly? LateFeeAfter { get; set; }
-        public DateTime? CreatedAt { get; set; }
     }
 }

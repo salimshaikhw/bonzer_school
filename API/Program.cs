@@ -1,4 +1,7 @@
+using API.ExceptionHandling;
 using API.Extensions;
+using API.Logging;
+using API.Middlewares;
 using Application.Abstractions.Messaging;
 using Application.Abstractions.Services;
 using Application.Common.Helpers.FireAndForget;
@@ -6,9 +9,12 @@ using Application.ViewModels.EmailSettings;
 using FluentValidation.AspNetCore;
 using Infrastructure.Extensions;
 using Infrastructure.Messaging;
-using Infrastructure.Persistence.Postgres;
+using Infrastructure.Persistence.Catalog;
+using Infrastructure.Persistence.Seed;
+using Infrastructure.Tenancy;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
 using Infrastructure.Security.Entities;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -22,15 +28,17 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-    .MinimumLevel.Debug()
-    .Enrich.FromLogContext()
-    .WriteTo.Console(restrictedToMinimumLevel: LogEventLevel.Debug)
-    .WriteTo.File(Path.Combine(AppContext.BaseDirectory, "Logs", "nxt_logs_.txt"),
-                  rollingInterval: RollingInterval.Day,
-                  restrictedToMinimumLevel: LogEventLevel.Information)
-    .CreateLogger();
+// Console-only logger until the host is built; replaced by the configured one in AddBonzerLogging.
+LoggingExtensions.CreateBootstrapLogger();
+
+// Last-resort logging for exceptions that escape every handler (background threads, forgotten tasks).
+AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+    Log.Fatal(e.ExceptionObject as Exception, "Unhandled exception; the process is terminating: {IsTerminating}", e.IsTerminating);
+TaskScheduler.UnobservedTaskException += (_, e) =>
+{
+    Log.Error(e.Exception, "Unobserved task exception");
+    e.SetObserved();
+};
 
 try
 {
@@ -38,26 +46,45 @@ try
 
     var builder = WebApplication.CreateBuilder(args);
 
-    // Use Serilog as the host logger
-    builder.Host.UseSerilog();
+    // Serilog: structured JSON logs (console, rolling file, optionally Datadog). See API/Logging.
+    builder.AddBonzerLogging();
+
+    // Global exception handling: one log entry and one consistent error response per failed request.
+    builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+    builder.Services.AddProblemDetails(options =>
+        // Framework-generated errors (e.g. invalid JSON / model validation) carry the same correlation id.
+        options.CustomizeProblemDetails = context =>
+            context.ProblemDetails.Extensions["correlationId"] = context.HttpContext.TraceIdentifier);
 
 
 
 
-    builder.Services.AddDbContext<BonzerSchoolDbContext>(options =>
-        options.UseNpgsql(builder.Configuration.GetConnectionString("PostgresConnection")));
+    // Multi-tenancy (database per school group): CatalogDbContext = shared catalog (tenants, logins,
+    // shared lookups); BonzerSchoolDbContext = the current tenant's database. See MultiTenancyExtensions.
+    builder.Services.AddMultiTenancy(builder.Configuration);
 
 
     // Dev Ops CI CD Check Comment F0r Just Testing 51
 
-    // Identity (use ApplicationDbContext, not BonzerSchoolDbContext)
+    // Identity lives in the catalog database: one login table for every tenant (ApplicationUser.TenantId).
     builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     {
         options.Password.RequireDigit = true;
         options.Password.RequiredLength = 8;
+        options.User.RequireUniqueEmail = true;
     })
-        .AddEntityFrameworkStores<BonzerSchoolDbContext>()
+        .AddEntityFrameworkStores<CatalogDbContext>()
         .AddDefaultTokenProviders();
+
+    // Keys that protect Identity tokens (password reset, email confirmation links). In containers the
+    // default key folder is lost on every restart, so DataProtection:KeysPath points at a volume.
+    var dataProtectionKeysPath = builder.Configuration["DataProtection:KeysPath"];
+    if (!string.IsNullOrWhiteSpace(dataProtectionKeysPath))
+    {
+        builder.Services.AddDataProtection()
+            .SetApplicationName("BonzerSchool")
+            .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath));
+    }
 
     // Add JWT and token service from Infrastructure.Extensions
     builder.Services.AddInfrastructureJwtAuthentication(builder.Configuration, builder.Environment);
@@ -67,8 +94,7 @@ try
 
     // Memory cache
     builder.Services.AddMemoryCache();
-    // Register project-specific memory cache helper if implemented
-    builder.Services.AddSingleton<Application.Common.Helpers.MemoryCache.IMemoryCacheHelper, Application.Common.Helpers.MemoryCache.MemoryCacheHelper>();
+    // IMemoryCacheHelper is registered (scoped, tenant-prefixed keys) in AddEntityServices.
 
     // AutoMapper (adjust assemblies or profiles as needed)
     builder.Services.AddAutoMapper(typeof(Infrastructure.Mapping.SchoolGroupProfile).Assembly);
@@ -76,11 +102,11 @@ try
 
 
 
-    // Health Checks (only add Npgsql when connection string is set)
+    // Health Checks (only add Npgsql when connection string is set); checks the catalog database.
     var healthBuilder = builder.Services.AddHealthChecks();
     var pgConnection = builder.Configuration.GetConnectionString("PostgresConnection");
     if (!string.IsNullOrEmpty(pgConnection))
-        healthBuilder.AddNpgSql(pgConnection);
+        healthBuilder.AddNpgSql(sp => sp.GetRequiredService<TenantConnectionStrings>().Catalog);
 
     // For Time Conversion 
     AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -113,7 +139,8 @@ try
                     })
                     .AllowAnyHeader()
                     .AllowAnyMethod()
-                    .AllowCredentials();
+                    .AllowCredentials()
+                    .WithExposedHeaders(CorrelationIdMiddleware.HeaderName);
             }
             else
             {
@@ -128,7 +155,8 @@ try
                     policy.WithOrigins(origins)
                         .AllowAnyHeader()
                         .AllowAnyMethod()
-                        .AllowCredentials();
+                        .AllowCredentials()
+                        .WithExposedHeaders(CorrelationIdMiddleware.HeaderName);
                 }
                 else
                 {
@@ -139,7 +167,8 @@ try
                         )
                         .AllowAnyHeader()
                         .AllowAnyMethod()
-                        .AllowCredentials();
+                        .AllowCredentials()
+                        .WithExposedHeaders(CorrelationIdMiddleware.HeaderName);
                 }
             }
         });
@@ -187,127 +216,32 @@ try
         });
     });
 
-    // Configure logging providers and filters
-    builder.Logging.ClearProviders();
-    builder.Logging.AddSerilog();
-    builder.Logging.AddFilter("Microsoft", Microsoft.Extensions.Logging.LogLevel.Warning);
-    builder.Logging.AddFilter("System", Microsoft.Extensions.Logging.LogLevel.Warning);
-    builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", Microsoft.Extensions.Logging.LogLevel.Warning);
-
     var app = builder.Build();
 
-    // Seed Identity roles and demo users (AspNetUsers / AspNetUserRoles). Legacy app "users" table is not filled here.
+    // Code-first: create/upgrade the catalog database, seed roles, shared lookups and the Super Admin,
+    // migrate every tenant database and (when Seed:DemoData is true, i.e. Development) provision the
+    // demo tenant with one login per role and a demo school.
     try
     {
-        using (var scope = app.Services.CreateScope())
-        {
-            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-
-            string[] roles = new[] { "Admin", "User", "Principal", "ClassTeacher", "Parent" };
-            foreach (var role in roles)
-            {
-                if (!await roleManager.RoleExistsAsync(role))
-                    await roleManager.CreateAsync(new IdentityRole(role));
-            }
-
-            async Task EnsureIdentityUserAsync(string email, string password, string roleName, string firstName, string lastName)
-            {
-                if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-                    return;
-
-                var user = await userManager.FindByEmailAsync(email);
-                if (user == null)
-                {
-                    user = new ApplicationUser
-                    {
-                        UserName = email,
-                        Email = email,
-                        EmailConfirmed = true,
-                        FirstName = firstName,
-                        LastName = lastName,
-                    };
-                    var created = await userManager.CreateAsync(user, password);
-                    if (!created.Succeeded)
-                    {
-                        Log.Warning(
-                            "Identity seed: could not create {Email}: {Errors}",
-                            email,
-                            string.Join("; ", created.Errors.Select(e => e.Description)));
-                        return;
-                    }
-                }
-
-                if (await userManager.IsInRoleAsync(user, roleName))
-                    return;
-
-                var addRole = await userManager.AddToRoleAsync(user, roleName);
-                if (!addRole.Succeeded)
-                {
-                    Log.Warning(
-                        "Identity seed: could not add role {Role} to {Email}: {Errors}",
-                        roleName,
-                        email,
-                        string.Join("; ", addRole.Errors.Select(e => e.Description)));
-                }
-            }
-
-            var adminEmail = builder.Configuration["Admin:Email"] ?? "admin@local";
-            var adminPwd = builder.Configuration["Admin:Password"] ?? "Admin123!";
-            var admin = await userManager.FindByEmailAsync(adminEmail);
-            if (admin == null)
-            {
-                admin = new ApplicationUser { UserName = adminEmail, Email = adminEmail, EmailConfirmed = true, FirstName = "Sys", LastName = "Admin" };
-                var res = await userManager.CreateAsync(admin, adminPwd);
-                if (res.Succeeded)
-                    await userManager.AddToRoleAsync(admin, "Admin");
-            }
-
-            var demoSection = builder.Configuration.GetSection("DemoUsers");
-            var demoPwd = demoSection["Password"];
-            if (!string.IsNullOrWhiteSpace(demoPwd))
-            {
-                await EnsureIdentityUserAsync(
-                    demoSection["PrincipalEmail"] ?? "principal@local",
-                    demoPwd,
-                    "Principal",
-                    "Scenario",
-                    "Principal");
-                await EnsureIdentityUserAsync(
-                    demoSection["ClassTeacherEmail"] ?? "classteacher@local",
-                    demoPwd,
-                    "ClassTeacher",
-                    "Scenario",
-                    "ClassTeacher");
-                await EnsureIdentityUserAsync(
-                    demoSection["ParentEmail"] ?? "parent@local",
-                    demoPwd,
-                    "Parent",
-                    "Scenario",
-                    "Parent");
-                await EnsureIdentityUserAsync(
-                    demoSection["StaffEmail"] ?? "staff@local",
-                    demoPwd,
-                    "User",
-                    "Scenario",
-                    "Staff");
-            }
-        }
+        await DatabaseInitializer.InitializeAsync(app.Services, seedDemoData: builder.Configuration.GetValue<bool>("Seed:DemoData"));
     }
     catch (Exception ex)
     {
-        Log.Warning(ex,
-            "Identity seed skipped (database not reachable). Start PostgreSQL on the connection in appsettings.json, then restart the API for login and data endpoints.");
+        Log.Error(ex,
+            "Database initialisation failed. Check ConnectionStrings:PostgresConnection, Tenancy:CatalogDatabase and that PostgreSQL is running, then restart the API.");
     }
 
+    // Order matters:
+    //   1. correlation id  -> every later log line (including the request summary) carries it
+    //   2. request logging -> one summary line per request, with the final status code
+    //   3. exception handler -> turns exceptions into error responses, inside the request log
+    app.UseMiddleware<CorrelationIdMiddleware>();
+    app.UseBonzerRequestLogging();
+    app.UseExceptionHandler();
 
-        app.UseSwagger();
-        app.UseSwaggerUI();
-    
+    app.UseSwagger();
+    app.UseSwaggerUI();
 
-
-    // Global exception handling
-    app.UseMiddleware<API.Middlewares.ExceptionMiddleware>();
     // Avoid redirecting local HTTP API traffic to HTTPS (breaks Vite proxy and odd clients).
     if (!app.Environment.IsDevelopment())
         app.UseHttpsRedirection();
@@ -317,6 +251,10 @@ try
 
     // IMPORTANT: authentication before authorization
     app.UseAuthentication();
+    // Selects the tenant database from the JWT "tenant_id" claim (or X-Tenant for the Super Admin).
+    app.UseMiddleware<API.Middlewares.TenantResolutionMiddleware>();
+    // Adds TenantId / Tenant / UserId to every log line written while the request runs.
+    app.UseMiddleware<RequestLogContextMiddleware>();
     app.UseAuthorization();
 
     app.MapControllers();
@@ -332,7 +270,8 @@ try
     });
     app.Run();
 }
-catch (Exception ex)
+// EF Core tools (dotnet ef migrations ...) stop the host on purpose with HostAbortedException.
+catch (Exception ex) when (ex is not HostAbortedException)
 {
     Log.Fatal(ex, "Host terminated unexpectedly");
     throw;

@@ -2,9 +2,8 @@ using System;
 
 namespace Application.ViewModels.Attendance;
 
-public class LeaveRequestDto
+public class LeaveRequestDto : AuditableResponse
 {
-    public Guid Id { get; set; }
     public Guid StudentId { get; set; }
     public string? StudentName { get; set; }
     public DateOnly FromDate { get; set; }

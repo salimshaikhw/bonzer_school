@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 
 namespace Application.Exceptions
 {
-    [Serializable]
     public class BaseServiceException : HCBException
     {
         public BaseServiceException(string message, Exception innerException = null, ExceptionCodes exceptionCodes = ExceptionCodes.Default)

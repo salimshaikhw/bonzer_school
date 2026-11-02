@@ -20,5 +20,4 @@ public class InvoiceRequest
     public string? Status { get; set; }
     public int? Month { get; set; }
     public int? Year { get; set; }
-    public DateTime? CreatedAt { get; set; }
 }

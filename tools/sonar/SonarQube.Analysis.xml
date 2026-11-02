@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  SonarQube analysis settings shared by tools/sonar/sonar-scan.ps1, sonar-scan.sh and the GitHub workflow.
+  Server URL and token are passed on the command line, never stored here.
+-->
+<SonarQubeAnalysisProperties xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://www.sonarsource.com/msbuild/integration/2015/1">
+
+  <!-- Not analysed at all: generated code, legacy SQL, docs, build output. -->
+  <Property Name="sonar.exclusions">**/Migrations/**,**/*.Designer.cs,**/bin/**,**/obj/**,**/Scripts/**,**/docs/**,**/spreadsheets/**,**/Logs/**</Property>
+
+  <!-- Analysed for bugs and smells, but not expected to be covered by unit tests. -->
+  <Property Name="sonar.coverage.exclusions">**/Program.cs,**/Migrations/**,**/Domain/Entities/**,**/ViewModels/**,**/Mapping/**,**/Persistence/Seed/**,**/DesignTimeDbContextFactories.cs</Property>
+
+  <!-- Data classes are repetitive by nature; do not count them as copy-paste. -->
+  <Property Name="sonar.cpd.exclusions">**/Migrations/**,**/Domain/Entities/**,**/ViewModels/**</Property>
+
+  <!-- Coverage report written by dotnet-coverage when test projects exist. -->
+  <Property Name="sonar.cs.vscoveragexml.reportsPaths">coverage.xml</Property>
+
+  <Property Name="sonar.sourceEncoding">UTF-8</Property>
+</SonarQubeAnalysisProperties>

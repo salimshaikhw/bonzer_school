@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace Infrastructure.Messaging
 {
-    public class EmailService : IEmailService
+    public class EmailService : Application.Abstractions.Messaging.IEmailService
     {
         private readonly ILogger<EmailService> _logger;
         private readonly IConfiguration _configuration;
@@ -46,11 +46,12 @@ namespace Infrastructure.Messaging
                     var client = new SmtpClient(_host, _port)
                     {
                         Credentials = new NetworkCredential(_userName, _password),
-                        EnableSsl = _enableSSL,
-                        Timeout = 120
+                        // Always TLS (credentials travel over this connection); Timeout is in milliseconds.
+                        EnableSsl = true,
+                        Timeout = 30_000
                     };
 
-                    _logger.LogInformation($"Sending email to: {string.Join(',', to)}, subject: {subject}");
+                    _logger.LogInformation("Sending email \"{Subject}\" to {RecipientCount} recipient(s)", subject, to.Count());
 
                     var mailMessage = new MailMessage() { IsBodyHtml = isHtml };
                     mailMessage.From = new MailAddress(_from);
@@ -71,25 +72,25 @@ namespace Infrastructure.Messaging
                         }
 
                         client.SendMailAsync(mailMessage).Wait();
-                        _logger.LogInformation($"Email Sent to: {string.Join(',', to)}");
+                        _logger.LogInformation("Email \"{Subject}\" sent to {RecipientCount} recipient(s)", subject, to.Count());
                         success = true;
                     }
                     else
                     {
                         success = false;
-                        _logger.LogInformation("No email recipient found.");
+                        _logger.LogWarning("Email \"{Subject}\" not sent: no recipients", subject);
                     }
                 }
                 else
                 {
                     success = false;
-                    _logger.LogInformation("Send email is not active.");
+                    _logger.LogInformation("Email \"{Subject}\" not sent: sending is disabled in EmailSettings", subject);
                 }
             }
             catch (Exception ex)
             {
                 success = false;
-                _logger.LogError(ex, "Error in sending email");
+                _logger.LogError(ex, "Sending email \"{Subject}\" failed", subject);
             }
 
             return Task.FromResult(success);

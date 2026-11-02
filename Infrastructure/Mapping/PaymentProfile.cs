@@ -1,6 +1,5 @@
 ﻿using Application.ViewModels.Payment;
 using AutoMapper;
-using Domain.Entities.Postgres.Scaffolded;
 using System;
 using System.Collections.Generic;
 using System.Linq;

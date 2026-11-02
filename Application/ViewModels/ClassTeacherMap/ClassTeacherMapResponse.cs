@@ -1,9 +1,7 @@
 namespace Application.ViewModels.ClassTeacherMap;
 
-public class ClassTeacherMapResponse
+public class ClassTeacherMapResponse : AuditableResponse
 {
-    public Guid Id { get; set; }
-
     public Guid? ClassId { get; set; }
 
     public Guid? DivisionId { get; set; }

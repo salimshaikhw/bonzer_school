@@ -17,11 +17,8 @@ namespace Infrastructure.Persistence.UnitOfWork
         private readonly BonzerSchoolDbContext _dbContext;
         private readonly Dictionary<Type, object> _repositories = new Dictionary<Type, object>();
         private bool _disposed;
-        public Dictionary<Type, object> Repositories
-        {
-            get { return _repositories; }
-            set { Repositories = value; }
-        }
+        // The setter used to assign the property to itself (infinite recursion); nothing needs to replace the map.
+        public Dictionary<Type, object> Repositories => _repositories;
 
         public UnitOfWork(BonzerSchoolDbContext dbContext)
         {

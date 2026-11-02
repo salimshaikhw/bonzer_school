@@ -1,0 +1,13 @@
+global using Domain.Common;
+global using Domain.Entities.Academics;
+global using Domain.Entities.Administration;
+global using Domain.Entities.Attendances;
+global using Domain.Entities.Auth;
+global using Domain.Entities.Certificates;
+global using Domain.Entities.Communication;
+global using Domain.Entities.Exams;
+global using Domain.Entities.Fees;
+global using Domain.Entities.Organization;
+global using Domain.Entities.Personnel;
+global using Domain.Entities.Students;
+global using Domain.Entities.Tenancy;

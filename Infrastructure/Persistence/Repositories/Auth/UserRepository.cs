@@ -1,0 +1,13 @@
+using Application.Abstractions.Repositories;
+using Microsoft.Extensions.Logging;
+
+namespace Infrastructure.Persistence.Repositories.Auth;
+
+public class UserRepository : Repository<User>, IUserRepository
+{
+    public UserRepository(Infrastructure.Persistence.Postgres.BonzerSchoolDbContext context, ILogger<UserRepository> logger)
+        : base(context, logger)
+    {
+    }
+    // Add custom methods for user if needed
+}

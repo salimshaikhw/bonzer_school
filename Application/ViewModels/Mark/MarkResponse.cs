@@ -2,9 +2,8 @@ using System;
 
 namespace Application.ViewModels.Mark
 {
-    public class MarkResponse
+    public class MarkResponse : AuditableResponse
     {
-        public Guid Id { get; set; }
         public Guid? ExamSubjectComponentId { get; set; }
         public Guid? StudentId { get; set; }
         public decimal? MarksObtained { get; set; }

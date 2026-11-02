@@ -14,7 +14,8 @@ namespace Application.Abstractions.Repositories
 
         Task<List<T>> FindAllAsync(System.Linq.Expressions.Expression<System.Func<T, bool>> match = null);
         Task<IEnumerable<T>> GetAllAsync(System.Linq.Expressions.Expression<System.Func<T, bool>> match = null);
-        Task<T?> FindAsync(System.Linq.Expressions.Expression<System.Func<T, bool>> match, bool trackChanges = false);
+        /// <param name="ignoreQueryFilters">Include rows hidden by global filters (e.g. soft-deleted), for restore/hard-delete paths.</param>
+        Task<T?> FindAsync(System.Linq.Expressions.Expression<System.Func<T, bool>> match, bool trackChanges = false, bool ignoreQueryFilters = false);
         Task<bool> IsExistAsync(System.Linq.Expressions.Expression<System.Func<T, bool>> predicate);
         Task<int> CountAsync();
         Task AddRangeAsync(IEnumerable<T> entities);

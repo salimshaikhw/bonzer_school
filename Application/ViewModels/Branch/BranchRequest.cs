@@ -14,6 +14,5 @@ namespace Application.ViewModels.Branch
         public string? State { get; set; }
         public string? Phone { get; set; }
         public string? Email { get; set; }
-        public DateTime? CreatedAt { get; set; }
     }
 }

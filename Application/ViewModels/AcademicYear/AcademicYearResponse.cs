@@ -2,9 +2,8 @@ using System;
 
 namespace Application.ViewModels.AcademicYear
 {
-    public class AcademicYearResponse
+    public class AcademicYearResponse : AuditableResponse
     {
-        public Guid Id { get; set; }
         public string? YearName { get; set; }
         public DateOnly? StartDate { get; set; }
         public DateOnly? EndDate { get; set; }

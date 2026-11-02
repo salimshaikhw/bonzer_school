@@ -2,9 +2,8 @@ using System;
 
 namespace Application.ViewModels.Invoice;
 
-public class InvoiceResponse
+public class InvoiceResponse : AuditableResponse
 {
-    public Guid Id { get; set; }
     public Guid? StudentId { get; set; }
     public Guid? BranchId { get; set; }
     public Guid? ClassId { get; set; }
@@ -20,5 +19,4 @@ public class InvoiceResponse
     public string? Status { get; set; }
     public int? Month { get; set; }
     public int? Year { get; set; }
-    public DateTime? CreatedAt { get; set; }
 }

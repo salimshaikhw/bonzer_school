@@ -1,7 +1,6 @@
 namespace Application.ViewModels.Department;
 
-public class DepartmentResponse
+public class DepartmentResponse : AuditableResponse
 {
-    public Guid Id { get; set; }
     public string? Name { get; set; }
 }

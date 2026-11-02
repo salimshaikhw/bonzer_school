@@ -12,5 +12,4 @@ public class ExamSubjectRequest
     public TimeOnly? StartTime { get; set; }
     public TimeOnly? EndTime { get; set; }
     public int? DurationMinutes { get; set; }
-    public DateTime? CreatedAt { get; set; }
 }

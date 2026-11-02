@@ -2,9 +2,8 @@ using System;
 
 namespace Application.ViewModels.Attendance
 {
-    public class AttendanceResponse
+    public class AttendanceResponse : AuditableResponse
     {
-        public Guid Id { get; set; }
         public Guid? StudentId { get; set; }
         public Guid? ClassTeacherId { get; set; }
         public Guid? ClassId { get; set; }
@@ -14,7 +13,6 @@ namespace Application.ViewModels.Attendance
         public string? LeaveType { get; set; }
         public bool? IsHoliday { get; set; }
         public string? Remark { get; set; }
-        public DateTime? CreatedAt { get; set; }
         public bool? IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
     }

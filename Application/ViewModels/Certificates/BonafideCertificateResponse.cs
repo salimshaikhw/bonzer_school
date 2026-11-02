@@ -2,9 +2,8 @@ using System;
 
 namespace Application.ViewModels.Certificates;
 
-public class BonafideCertificateResponse
+public class BonafideCertificateResponse : AuditableResponse
 {
-    public Guid Id { get; set; }
     public string BonafideNumber { get; set; } = null!;
     public int Sequence { get; set; }
     public DateOnly IssueDate { get; set; }
@@ -13,7 +12,6 @@ public class BonafideCertificateResponse
     public DateOnly? ValidFrom { get; set; }
     public DateOnly? ValidTo { get; set; }
     public bool IsDuplicate { get; set; }
-    public DateTime? CreatedAt { get; set; }
 
     public Guid StudentId { get; set; }
     public string? StudentName { get; set; }

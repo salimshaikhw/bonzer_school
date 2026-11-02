@@ -20,9 +20,8 @@ public class UpdateAttendanceWeeklyOffSettingsRequest
     public bool SundayOff { get; set; }
 }
 
-public class SchoolHolidayResponse
+public class SchoolHolidayResponse : AuditableResponse
 {
-    public Guid Id { get; set; }
     public Guid BranchId { get; set; }
     public DateOnly HolidayDate { get; set; }
     public string? Name { get; set; }

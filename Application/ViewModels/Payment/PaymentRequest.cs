@@ -18,7 +18,6 @@ namespace Application.ViewModels.Payment
         public string? TransactionNumber { get; set; }
         public string? BankName { get; set; }
         public string? Remarks { get; set; }
-        public DateTime? CreatedAt { get; set; }
         public PaymentFeeLineRequest[]? FeeLines { get; set; }
     }
 
@@ -37,9 +36,8 @@ namespace Application.ViewModels.Payment
     }
 
 
-    public class PaymentResponse
+    public class PaymentResponse : AuditableResponse
     {
-        public Guid Id { get; set; }
         public string? InvoiceId { get; set; }
         public Guid? StudentId { get; set; }
         public Guid? BranchId { get; set; }
@@ -52,7 +50,6 @@ namespace Application.ViewModels.Payment
         public string? TransactionNumber { get; set; }
         public string? BankName { get; set; }
         public string? Remarks { get; set; }
-        public DateTime? CreatedAt { get; set; }
     }
 
     /// <summary>DTO for printing or re-printing a payment slip (one slip per payment).</summary>

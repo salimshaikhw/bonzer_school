@@ -20,7 +20,7 @@ namespace Application.Common.Helpers.FireAndForget
 
         public void Fire<T>(Action<T> bullet, Action<Exception> handler = null)
         {
-            _logger.LogInformation("Fired a new action.");
+            _logger.LogDebug("Queued background task using {Dependency}", typeof(T).Name);
             Task.Run(() =>
             {
                 using var scope = _scopeFactory.CreateScope();
@@ -31,7 +31,7 @@ namespace Application.Common.Helpers.FireAndForget
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError(e, "Cannon crashed!");
+                    _logger.LogError(e, "Background task using {Dependency} failed", typeof(T).Name);
                     handler?.Invoke(e);
                 }
                 finally
@@ -43,7 +43,7 @@ namespace Application.Common.Helpers.FireAndForget
 
         public void FireAsync<T>(Func<T, Task> bullet, Action<Exception> handler = null)
         {
-            _logger.LogInformation("Fired a new async action.");
+            _logger.LogDebug("Queued background task using {Dependency}", typeof(T).Name);
             Task.Run(async () =>
             {
                 using var scope = _scopeFactory.CreateScope();
@@ -54,7 +54,7 @@ namespace Application.Common.Helpers.FireAndForget
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError(e, "Cannon crashed!");
+                    _logger.LogError(e, "Background task using {Dependency} failed", typeof(T).Name);
                     handler?.Invoke(e);
                 }
                 finally

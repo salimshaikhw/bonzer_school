@@ -83,9 +83,8 @@ namespace Application.ViewModels.Student
         public bool? SingleGirlChild { get; set; }
         public bool? FirstGraduate { get; set; }
     }
-    public class StudentResponse
+    public class StudentResponse : AuditableResponse
     {
-        public Guid Id { get; set; }
         public Guid? BranchId { get; set; }
         public Guid? AcademicYearId { get; set; }
         public string? AdmissionNo { get; set; }

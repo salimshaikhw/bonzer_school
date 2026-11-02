@@ -7,9 +7,8 @@ namespace Application.ViewModels.Subject
         public string? Name { get; set; }
         public string? Code { get; set; }
     }
-    public class SubjectResponse
+    public class SubjectResponse : AuditableResponse
     {
-        public Guid Id { get; set; }
         public string? Name { get; set; }
         public string? Code { get; set; }
     }

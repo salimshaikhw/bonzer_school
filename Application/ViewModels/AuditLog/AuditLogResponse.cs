@@ -2,9 +2,8 @@ using System;
 
 namespace Application.ViewModels.AuditLog
 {
-    public class AuditLogResponse
+    public class AuditLogResponse : BaseResponse
     {
-        public Guid Id { get; set; }
         public Guid? BranchId { get; set; }
         public Guid? UserId { get; set; }
         public string? Module { get; set; }

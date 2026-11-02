@@ -2,15 +2,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Serialization;
-// using System.Security.Permissions; // Obsolete, removed
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Application.Exceptions
 {
 
-    [Serializable]
+    /// <summary>Base of the application exceptions: an ExceptionCodes category (mapped to an HTTP status) and a reference id shown to the user and logged.</summary>
     public abstract class HCBException : Exception
     {
         public Guid ReferenceId { get; }
@@ -20,20 +18,6 @@ namespace Application.Exceptions
         {
             ExceptionCode = exceptionCode;
             ReferenceId = (innerException as HCBException)?.ReferenceId ?? Guid.NewGuid();
-        }
-
-        protected HCBException(SerializationInfo serializationInfo, StreamingContext streamingContext) : base(serializationInfo, streamingContext)
-        {
-            ExceptionCode = (ExceptionCodes)serializationInfo.GetInt32("ExceptionCode");
-            ReferenceId = Guid.Parse(serializationInfo.GetString("ReferenceId"));
-        }
-
-        // SecurityPermissionAttribute is obsolete in .NET 8+, safe to remove for most modern scenarios
-        public override void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            base.GetObjectData(info, context);
-            info.AddValue("ExceptionCode", ExceptionCode);
-            info.AddValue("ReferenceId", ReferenceId);
         }
     }
 }

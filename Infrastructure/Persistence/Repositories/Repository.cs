@@ -36,7 +36,6 @@ namespace Infrastructure.Persistence.Repositories
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, $"Error patching {typeof(T).Name}: {id}");
                     throw new BaseServiceException($"Error patching {typeof(T).Name}: {id}", ex, ExceptionCodes.Database);
                 }
             }
@@ -60,7 +59,6 @@ namespace Infrastructure.Persistence.Repositories
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, $"Error upserting {typeof(T).Name}");
                     throw new BaseServiceException($"Error upserting {typeof(T).Name}", ex, ExceptionCodes.Database);
                 }
             }
@@ -73,7 +71,6 @@ namespace Infrastructure.Persistence.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error getting all {typeof(T).Name}s");
                 throw new BaseServiceException($"Error getting all {typeof(T).Name}s", ex, ExceptionCodes.Database);
             }
         }
@@ -86,7 +83,6 @@ namespace Infrastructure.Persistence.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error finding all {typeof(T).Name}s");
                 throw new BaseServiceException($"Error finding all {typeof(T).Name}s", ex, ExceptionCodes.Database);
             }
         }
@@ -99,23 +95,23 @@ namespace Infrastructure.Persistence.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error getting all {typeof(T).Name}s with filter");
                 throw new BaseServiceException($"Error getting all {typeof(T).Name}s with filter", ex, ExceptionCodes.Database);
             }
         }
 
-        public virtual async Task<T?> FindAsync(Expression<Func<T, bool>> match, bool trackChanges = false)
+        public virtual async Task<T?> FindAsync(Expression<Func<T, bool>> match, bool trackChanges = false, bool ignoreQueryFilters = false)
         {
             try
             {
                 var query = _dbSet.AsQueryable();
+                if (ignoreQueryFilters)
+                    query = query.IgnoreQueryFilters();
                 if (!trackChanges)
                     query = query.AsNoTracking();
                 return await query.FirstOrDefaultAsync(match);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error finding {typeof(T).Name}");
                 throw new BaseServiceException($"Error finding {typeof(T).Name}", ex, ExceptionCodes.Database);
             }
         }
@@ -128,7 +124,6 @@ namespace Infrastructure.Persistence.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error checking existence of {typeof(T).Name}");
                 throw new BaseServiceException($"Error checking existence of {typeof(T).Name}", ex, ExceptionCodes.Database);
             }
         }
@@ -141,7 +136,6 @@ namespace Infrastructure.Persistence.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error counting {typeof(T).Name}s");
                 throw new BaseServiceException($"Error counting {typeof(T).Name}s", ex, ExceptionCodes.Database);
             }
         }
@@ -155,7 +149,6 @@ namespace Infrastructure.Persistence.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error adding range of {typeof(T).Name}s");
                 throw new BaseServiceException($"Error adding range of {typeof(T).Name}s", ex, ExceptionCodes.Database);
             }
         }
@@ -169,7 +162,6 @@ namespace Infrastructure.Persistence.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error removing range of {typeof(T).Name}s");
                 throw new BaseServiceException($"Error removing range of {typeof(T).Name}s", ex, ExceptionCodes.Database);
             }
         }
@@ -191,7 +183,6 @@ namespace Infrastructure.Persistence.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error filtering {typeof(T).Name}s");
                 throw new BaseServiceException($"Error filtering {typeof(T).Name}s", ex, ExceptionCodes.Database);
             }
         }
@@ -201,16 +192,16 @@ namespace Infrastructure.Persistence.Repositories
             try
             {
                 IQueryable<T> query = _dbSet;
+                if (ignoreGlobalQueryFilter)
+                    query = query.IgnoreQueryFilters();
                 if (predicate != null)
                     query = query.Where(predicate);
                 foreach (var include in includes)
                     query = query.Include(include);
-                // Note: ignoreGlobalQueryFilter is not implemented here, but can be added if needed
                 return query;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error querying {typeof(T).Name}s");
                 throw new BaseServiceException($"Error querying {typeof(T).Name}s", ex, ExceptionCodes.Database);
             }
         }
@@ -223,7 +214,6 @@ namespace Infrastructure.Persistence.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error executing raw SQL for {typeof(T).Name}s");
                 throw new BaseServiceException($"Error executing raw SQL for {typeof(T).Name}s", ex, ExceptionCodes.Database);
             }
         }
@@ -239,7 +229,6 @@ namespace Infrastructure.Persistence.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error getting {typeof(T).Name} by id: {id}");
                 throw new BaseServiceException($"Error getting {typeof(T).Name} by id: {id}", ex, ExceptionCodes.Database);
             }
         }
@@ -253,7 +242,6 @@ namespace Infrastructure.Persistence.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error adding {typeof(T).Name}");
                 throw new BaseServiceException($"Error adding {typeof(T).Name}", ex, ExceptionCodes.Database);
             }
         }
@@ -267,7 +255,6 @@ namespace Infrastructure.Persistence.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error updating {typeof(T).Name}");
                 throw new BaseServiceException($"Error updating {typeof(T).Name}", ex, ExceptionCodes.Database);
             }
         }
@@ -284,7 +271,6 @@ namespace Infrastructure.Persistence.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error deleting {typeof(T).Name}: {id}");
                 throw new BaseServiceException($"Error deleting {typeof(T).Name}: {id}", ex, ExceptionCodes.Database);
             }
         }

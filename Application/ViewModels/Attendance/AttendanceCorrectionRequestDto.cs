@@ -2,9 +2,8 @@ using System;
 
 namespace Application.ViewModels.Attendance;
 
-public class AttendanceCorrectionRequestDto
+public class AttendanceCorrectionRequestDto : AuditableResponse
 {
-    public Guid Id { get; set; }
     public Guid AttendanceId { get; set; }
     public string Reason { get; set; } = null!;
     public string Status { get; set; } = null!;

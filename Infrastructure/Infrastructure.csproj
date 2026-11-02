@@ -7,15 +7,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Folder Include="Caching\" />
-		<Folder Include="Logging\" />
-		<Folder Include="Extensions\" />
-		<Folder Include="Persistence\EntityConfigurations\" />
-		<Folder Include="Persistence\Migrations.SqlServer\" />
-		<Folder Include="Security\Entities\" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<PackageReference Include="AutoMapper" Version="12.0.1" />
 		<PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
 		<PackageReference Include="MailKit" Version="4.16.0" />
@@ -27,7 +18,15 @@
 		</PackageReference>
 		<PackageReference Include="MimeKit" Version="4.16.0" />
 		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
+		<PackageReference Include="OpenIddict.AspNetCore" Version="7.7.2" />
+		<PackageReference Include="OpenIddict.EntityFrameworkCore" Version="7.7.2" />
 		<PackageReference Include="QuestPDF" Version="2026.2.4" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Pre-multi-tenancy single-database migrations, kept for reference only. Safe to delete. -->
+		<Compile Remove="Persistence\Migrations\Legacy\**" />
+		<None Include="Persistence\Migrations\Legacy\**" />
 	</ItemGroup>
 
 	<ItemGroup>

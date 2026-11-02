@@ -1,0 +1,64 @@
+# SonarQube analysis on every push to master and on pull requests.
+# Repository settings > Secrets and variables > Actions:
+#   secret   SONAR_TOKEN     token of a SonarQube user/project ("Execute Analysis" permission)
+#   variable SONAR_HOST_URL  e.g. https://sonarqube.example.com (must be reachable from GitHub runners)
+# The job is skipped while SONAR_TOKEN is not configured.
+
+name: SonarQube
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sonarqube:
+    name: Analyse
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+    steps:
+      - name: Check configuration
+        id: config
+        run: |
+          if [ -z "$SONAR_TOKEN" ] || [ -z "$SONAR_HOST_URL" ]; then
+            echo "SONAR_TOKEN secret or SONAR_HOST_URL variable is not set; skipping analysis."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.config.outputs.enabled == 'true'
+        with:
+          fetch-depth: 0   # full history: SonarQube uses blame data for "new code"
+
+      - uses: actions/setup-dotnet@v4
+        if: steps.config.outputs.enabled == 'true'
+        with:
+          dotnet-version: '8.0.x'
+
+      - uses: actions/setup-java@v4
+        if: steps.config.outputs.enabled == 'true'
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Cache SonarQube packages
+        if: steps.config.outputs.enabled == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+
+      - name: Analyse
+        if: steps.config.outputs.enabled == 'true'
+        run: bash tools/sonar/sonar-scan.sh
+        env:
+          VERSION: ${{ github.run_number }}

@@ -1,6 +1,5 @@
 using AutoMapper;
 using Application.ViewModels.Branch;
-using Domain.Entities.Postgres.Scaffolded;
 
 namespace Infrastructure.Mapping
 {
@@ -8,9 +7,12 @@ namespace Infrastructure.Mapping
     {
         public BranchProfile()
         {
-            CreateMap<Branch, BranchResponse>();
+            // DTOs keep the original API field name "Schooluid" so existing clients keep working.
+            CreateMap<Branch, BranchResponse>()
+                .ForMember(d => d.Schooluid, o => o.MapFrom(s => s.SchoolUid));
 
-            CreateMap<BranchRequest, Branch>();
+            CreateMap<BranchRequest, Branch>()
+                .ForMember(d => d.SchoolUid, o => o.MapFrom(s => s.Schooluid));
         }
     }
 }

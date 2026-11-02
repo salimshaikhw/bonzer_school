@@ -1,6 +1,5 @@
 ﻿using Application.ViewModels.Student;
 using AutoMapper;
-using Domain.Entities.Postgres.Scaffolded;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,9 +12,12 @@ namespace Infrastructure.Mapping
     {
         public StudentProfile()
         {
-            CreateMap<StudentRequest, Student>();
+            // DTOs keep the original API field name "PreviousExamBord" so existing clients keep working.
+            CreateMap<StudentRequest, Student>()
+                .ForMember(d => d.PreviousExamBoard, o => o.MapFrom(s => s.PreviousExamBord));
 
-            CreateMap<Student, StudentResponse>();
+            CreateMap<Student, StudentResponse>()
+                .ForMember(d => d.PreviousExamBord, o => o.MapFrom(s => s.PreviousExamBoard));
         }
     }
 

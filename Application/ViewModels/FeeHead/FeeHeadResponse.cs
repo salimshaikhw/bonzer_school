@@ -1,8 +1,7 @@
 namespace Application.ViewModels.FeeHead
 {
-    public class FeeHeadResponse
+    public class FeeHeadResponse : AuditableResponse
     {
-        public Guid Id { get; set; }
         public string? Name { get; set; }
         public string? AccountCode { get; set; }
     }

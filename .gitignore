@@ -104,3 +104,7 @@ TestResults/
 *.nupkg
 # Packages folder can be ignored if using PackageReference
 packages/
+_buildcheck3/
+
+# SonarScanner for .NET working folder
+.sonarqube/

@@ -13,6 +13,5 @@ namespace Application.ViewModels.Attendance
         public string? LeaveType { get; set; }
         public bool? IsHoliday { get; set; }
         public string? Remark { get; set; }
-        public DateTime? CreatedAt { get; set; }
     }
 }

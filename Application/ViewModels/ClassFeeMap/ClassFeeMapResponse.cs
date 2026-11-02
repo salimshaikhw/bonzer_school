@@ -1,8 +1,7 @@
 namespace Application.ViewModels.ClassFeeMap;
 
-public class ClassFeeMapResponse
+public class ClassFeeMapResponse : AuditableResponse
 {
-    public Guid Id { get; set; }
     public Guid? ClassId { get; set; }
     public Guid? DivisionId { get; set; }
     public Guid? AcademicYearId { get; set; }
@@ -10,5 +9,4 @@ public class ClassFeeMapResponse
     public decimal? Amount { get; set; }
     public int? InstallmentNo { get; set; }
     public string? AcademicYear { get; set; }
-    public DateTime? CreatedAt { get; set; }
 }

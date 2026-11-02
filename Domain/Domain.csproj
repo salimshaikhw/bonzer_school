@@ -7,7 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Primitives\" />
+    <!-- Attribute-only package: [Index], [Precision]. No dependency on EF Core itself. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Abstractions" Version="8.0.24" />
   </ItemGroup>
 
 

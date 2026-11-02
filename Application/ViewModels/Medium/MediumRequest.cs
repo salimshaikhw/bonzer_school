@@ -6,9 +6,8 @@ namespace Application.ViewModels.Medium
     {
         public string? Name { get; set; }
     }
-    public class MediumResponse
+    public class MediumResponse : AuditableResponse
     {
-        public Guid Id { get; set; }
         public string? Name { get; set; }
     }
 }

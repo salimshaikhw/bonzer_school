@@ -1,5 +1,4 @@
 using AutoMapper;
-using Domain.Entities.Postgres.Scaffolded;
 using Application.ViewModels.SchoolGroup;
 
 namespace Infrastructure.Mapping

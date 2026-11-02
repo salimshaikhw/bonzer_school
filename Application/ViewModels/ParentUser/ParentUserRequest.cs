@@ -9,9 +9,8 @@ namespace Application.ViewModels.ParentUser
         public string? PasswordHash { get; set; }
         public string? Phone { get; set; }
     }
-    public class ParentUserResponse
+    public class ParentUserResponse : AuditableResponse
     {
-        public Guid Id { get; set; }
         public Guid? StudentId { get; set; }
         public string? Username { get; set; }
         public string? PasswordHash { get; set; }

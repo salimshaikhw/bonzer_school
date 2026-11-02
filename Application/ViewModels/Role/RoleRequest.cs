@@ -7,9 +7,8 @@ namespace Application.ViewModels.Role
         public string? Name { get; set; }
         public string? Description { get; set; }
     }
-    public class RoleResponse
+    public class RoleResponse : AuditableResponse
     {
-        public Guid Id { get; set; }
         public string? Name { get; set; }
         public string? Description { get; set; }
     }

@@ -2,9 +2,8 @@ using System;
 
 namespace Application.ViewModels.Branch
 {
-    public class BranchResponse
+    public class BranchResponse : AuditableResponse
     {
-        public Guid Id { get; set; }
         public Guid? GroupId { get; set; }
         public Guid? InstitutionTypeId { get; set; }
         public Guid? MediumId { get; set; }
@@ -15,6 +14,5 @@ namespace Application.ViewModels.Branch
         public string? State { get; set; }
         public string? Phone { get; set; }
         public string? Email { get; set; }
-        public DateTime? CreatedAt { get; set; }
     }
 }

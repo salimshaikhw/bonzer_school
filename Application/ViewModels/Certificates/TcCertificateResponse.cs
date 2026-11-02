@@ -2,9 +2,8 @@ using System;
 
 namespace Application.ViewModels.Certificates;
 
-public class TcCertificateResponse
+public class TcCertificateResponse : AuditableResponse
 {
-    public Guid Id { get; set; }
     public string TcNumber { get; set; } = null!;
     public int Sequence { get; set; }
     public DateOnly IssueDate { get; set; }
@@ -14,7 +13,6 @@ public class TcCertificateResponse
     public Guid? IssuedByStaffId { get; set; }
     public string? Conduct { get; set; }
     public bool? FeesCleared { get; set; }
-    public DateTime? CreatedAt { get; set; }
 
     public Guid StudentId { get; set; }
     public string? StudentName { get; set; }

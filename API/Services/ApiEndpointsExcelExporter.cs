@@ -64,22 +64,27 @@ public static class ApiEndpointsExcelExporter
                 ? type.Name[..^"Controller".Length]
                 : type.Name;
 
-            var routeTemplate = type.GetCustomAttribute<RouteAttribute>()?.Template ?? "api/[controller]";
-            var basePath = routeTemplate.Replace("[controller]", shortName, StringComparison.OrdinalIgnoreCase);
+            // A controller may declare several [Route] templates (aliases); each is listed.
+            var routeTemplates = type.GetCustomAttributes<RouteAttribute>().Select(r => r.Template).ToList();
+            if (routeTemplates.Count == 0)
+                routeTemplates.Add("api/[controller]");
 
             foreach (var method in type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly))
             {
-                var verb = GetHttpVerb(method);
-                if (verb == null)
+                var httpAttribute = method.GetCustomAttributes<Microsoft.AspNetCore.Mvc.Routing.HttpMethodAttribute>().FirstOrDefault();
+                if (httpAttribute == null)
                     continue;
 
-                var actionTemplate = GetActionRouteTemplate(method);
-                var route = CombineRoute(basePath, actionTemplate);
-
+                var verb = string.Join(", ", httpAttribute.HttpMethods);
                 var parameters = FormatParameters(method);
                 var description = GetDescription(type, method, xmlSummaries);
 
-                list.Add(new RowData(shortName, method.Name, verb, route, parameters, description));
+                foreach (var routeTemplate in routeTemplates)
+                {
+                    var basePath = routeTemplate.Replace("[controller]", shortName, StringComparison.OrdinalIgnoreCase);
+                    var route = CombineRoute(basePath, httpAttribute.Template ?? string.Empty);
+                    list.Add(new RowData(shortName, method.Name, verb, route, parameters, description));
+                }
             }
         }
 
@@ -92,26 +97,6 @@ public static class ApiEndpointsExcelExporter
         if (string.IsNullOrEmpty(actionTemplate))
             return basePath;
         return basePath + "/" + actionTemplate.Trim().TrimStart('/');
-    }
-
-    private static string GetActionRouteTemplate(MethodInfo method)
-    {
-        return method.GetCustomAttribute<HttpGetAttribute>()?.Template
-            ?? method.GetCustomAttribute<HttpPostAttribute>()?.Template
-            ?? method.GetCustomAttribute<HttpPutAttribute>()?.Template
-            ?? method.GetCustomAttribute<HttpPatchAttribute>()?.Template
-            ?? method.GetCustomAttribute<HttpDeleteAttribute>()?.Template
-            ?? string.Empty;
-    }
-
-    private static string? GetHttpVerb(MethodInfo method)
-    {
-        if (method.GetCustomAttribute<HttpGetAttribute>() != null) return "GET";
-        if (method.GetCustomAttribute<HttpPostAttribute>() != null) return "POST";
-        if (method.GetCustomAttribute<HttpPutAttribute>() != null) return "PUT";
-        if (method.GetCustomAttribute<HttpPatchAttribute>() != null) return "PATCH";
-        if (method.GetCustomAttribute<HttpDeleteAttribute>() != null) return "DELETE";
-        return null;
     }
 
     private static string FormatParameters(MethodInfo method)

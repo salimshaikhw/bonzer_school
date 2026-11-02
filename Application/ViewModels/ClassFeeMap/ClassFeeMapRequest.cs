@@ -9,5 +9,4 @@ public class ClassFeeMapRequest
     public decimal? Amount { get; set; }
     public int? InstallmentNo { get; set; }
     public string? AcademicYear { get; set; }
-    public DateTime? CreatedAt { get; set; }
 }

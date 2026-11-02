@@ -1,0 +1,171 @@
+# Bonzer School ERP — local / single-server stack.
+#
+#   cp .env.example .env          # then set the passwords and JWT_KEY
+#   docker compose up -d --build  # API on http://localhost:5102/swagger
+#
+# Optional services (profiles):
+#   docker compose --profile tools up -d     # + pgAdmin on http://localhost:5050
+#   docker compose --profile datadog up -d   # + Datadog Agent (needs DD_API_KEY)
+#   docker compose --profile sonar up -d     # + SonarQube on http://localhost:9000 (see docs/sonarqube.md)
+#
+# See docs/docker.md.
+
+name: bonzer-school
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: postgres
+    ports:
+      # Host port 5433 so it does not clash with a PostgreSQL already installed on the machine.
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      # PostgreSQL 18 images keep data under /var/lib/postgresql/<version>/docker.
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VERSION: ${APP_VERSION:-1.0.0}
+    image: bonzer-school-api:${APP_VERSION:-latest}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${API_PORT:-5102}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+
+      # Server and credentials only; the app chooses the database (bonzer_catalog, bonzer_school_<tenant>)
+      # and creates / migrates them on startup.
+      ConnectionStrings__PostgresConnection: Host=db;Port=5432;Database=postgres;Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD}
+
+      Jwt__Key: ${JWT_KEY:?Set JWT_KEY in .env (at least 32 characters)}
+      Jwt__Issuer: ${JWT_ISSUER:-BonzerSchool.Api}
+      Jwt__Audience: ${JWT_AUDIENCE:-BonzerSchool.Client}
+
+      PlatformAdmin__Email: ${PLATFORM_ADMIN_EMAIL:-superadmin@bonzer.local}
+      PlatformAdmin__Password: ${PLATFORM_ADMIN_PASSWORD:?Set PLATFORM_ADMIN_PASSWORD in .env}
+      Seed__DemoData: ${SEED_DEMO_DATA:-true}
+
+      # SPA origin allowed outside Development (overrides the first entry of Cors:AllowedOrigins).
+      Cors__AllowedOrigins__0: ${CORS_ORIGIN:-http://localhost:5173}
+
+      # Logging: JSON console is what the Datadog Agent parses; text is easier to read in `docker compose logs`.
+      AppLogging__JsonConsole: ${LOG_JSON_CONSOLE:-false}
+      Datadog__Enabled: ${DATADOG_DIRECT:-false}
+      Datadog__ApiKey: ${DD_API_KEY:-}
+      Datadog__Site: ${DD_SITE:-datadoghq.com}
+
+      # Google / Microsoft sign-in (empty = disabled).
+      ExternalLogin__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      ExternalLogin__Microsoft__ClientId: ${MICROSOFT_CLIENT_ID:-}
+
+      # OAuth 2.0 server keys; without them it only runs in Development (with dev certificates).
+      OAuthServer__SigningCertificate: ${OAUTH_SIGNING_CERTIFICATE:-}
+      OAuthServer__SigningCertificatePassword: ${OAUTH_SIGNING_CERTIFICATE_PASSWORD:-}
+      OAuthServer__EncryptionKey: ${OAUTH_ENCRYPTION_KEY:-}
+    volumes:
+      - api-logs:/app/Logs
+      - api-keys:/app/keys
+    labels:
+      # Read by the Datadog Agent (profile "datadog"): which containers to collect and how to tag them.
+      com.datadoghq.ad.logs: '[{"source": "csharp", "service": "bonzer-school-api"}]'
+      com.datadoghq.tags.service: bonzer-school-api
+      com.datadoghq.tags.env: ${DD_ENV:-local}
+      com.datadoghq.tags.version: ${APP_VERSION:-1.0.0}
+
+  pgadmin:
+    image: dpage/pgadmin4:9
+    profiles: ["tools"]
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@bonzer.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+
+  datadog-agent:
+    image: gcr.io/datadoghq/agent:7
+    profiles: ["datadog"]
+    restart: unless-stopped
+    environment:
+      DD_API_KEY: ${DD_API_KEY:-}  # required for this profile: set it in .env
+      DD_SITE: ${DD_SITE:-datadoghq.com}
+      DD_ENV: ${DD_ENV:-local}
+      DD_LOGS_ENABLED: "true"
+      # Only containers with a com.datadoghq.ad.logs label (the API) are collected.
+      DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL: "false"
+      DD_APM_ENABLED: "true"
+      DD_APM_NON_LOCAL_TRAFFIC: "true"
+      DD_DOGSTATSD_NON_LOCAL_TRAFFIC: "true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+
+  # Code quality server. Only the analysis results live here; it never touches the application data.
+  sonarqube:
+    image: sonarqube:26.10.0.133078-community
+    profiles: ["sonar"]
+    restart: unless-stopped
+    depends_on:
+      sonar-db:
+        condition: service_healthy
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://sonar-db:5432/sonarqube
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: ${SONAR_DB_PASSWORD:-sonar}
+      # Docker Desktop / WSL2 has a low vm.max_map_count, which SonarQube's embedded Elasticsearch
+      # otherwise refuses to start with. Disabling mmap avoids having to change the host kernel setting.
+      SONAR_SEARCH_JAVAADDITIONALOPTS: -Dnode.store.allow_mmap=false
+    ports:
+      - "${SONAR_PORT:-9000}:9000"
+    volumes:
+      - sonarqube-data:/opt/sonarqube/data
+      - sonarqube-extensions:/opt/sonarqube/extensions
+      - sonarqube-logs:/opt/sonarqube/logs
+
+  # Separate database server for SonarQube, so its schema and upgrades stay away from the ERP databases.
+  sonar-db:
+    image: postgres:17-alpine
+    profiles: ["sonar"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: ${SONAR_DB_PASSWORD:-sonar}
+      POSTGRES_DB: sonarqube
+    volumes:
+      - sonar-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sonar -d sonarqube"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  postgres-data:
+  api-logs:
+  api-keys:
+  pgadmin-data:
+  sonarqube-data:
+  sonarqube-extensions:
+  sonarqube-logs:
+  sonar-db-data:

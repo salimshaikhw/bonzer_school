@@ -12,5 +12,4 @@ public class ExamRequest
     public DateOnly? EndDate { get; set; }
     public string? Status { get; set; }
     public bool? IsLocked { get; set; }
-    public DateTime? CreatedAt { get; set; }
 }

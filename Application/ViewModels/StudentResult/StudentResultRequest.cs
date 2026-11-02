@@ -13,9 +13,8 @@ namespace Application.ViewModels.StudentResult
         public int? Rank { get; set; }
         public DateTime? GeneratedAt { get; set; }
     }
-    public class StudentResultResponse
+    public class StudentResultResponse : AuditableResponse
     {
-        public Guid Id { get; set; }
         public Guid? ExamId { get; set; }
         public Guid? StudentId { get; set; }
         public decimal? TotalMarks { get; set; }

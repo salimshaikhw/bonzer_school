@@ -9,5 +9,4 @@ public class ExamSubjectComponentRequest
     public decimal? MaxMarks { get; set; }
     public decimal? PassMarks { get; set; }
     public decimal? WeightagePercent { get; set; }
-    public DateTime? CreatedAt { get; set; }
 }
