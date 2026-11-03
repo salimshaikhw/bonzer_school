@@ -1,0 +1,410 @@
+# Module 1: school setup top-down + students. See 01-School-Setup-Hierarchy.md.
+# Visual Studio 2022 17.12+: start the API (F5, "http" profile), then click "Send request" above each block, in order.
+# Paste ids from responses into the variables below as you go.
+
+@host = http://localhost:5102
+@institutionTypeId = PASTE
+@mediumId = PASTE
+@tenantId = PASTE
+@branchId = PASTE
+@branch2Id = PASTE
+@academicYearId = PASTE
+@deptId = PASTE
+@staffId = PASTE
+@classId = PASTE
+@higherClassId = PASTE
+@divisionId = PASTE
+@subjectId = PASTE
+@studentId = PASTE
+
+########## PART B: PLATFORM (Super Admin, bonzer_catalog) ##########
+
+### Step 1: Super Admin login
+# @name super
+POST {{host}}/api/Auth/login
+Content-Type: application/json
+
+{ "email": "superadmin@bonzer.local", "password": "Admin@123" }
+
+### Step 2: Shared lookups (copy School -> @institutionTypeId)
+GET {{host}}/api/InstitutionType
+Authorization: Bearer {{super.response.body.$.accessToken}}
+
+### Step 2: Mediums (copy English -> @mediumId)
+GET {{host}}/api/Medium
+Authorization: Bearer {{super.response.body.$.accessToken}}
+
+### Step 2: Existing tenants
+GET {{host}}/api/Tenants
+Authorization: Bearer {{super.response.body.$.accessToken}}
+
+### Step 3: Create school group = tenant + database bonzer_school_sunrise_trust (copy id -> @tenantId)
+POST {{host}}/api/Tenants
+Authorization: Bearer {{super.response.body.$.accessToken}}
+Content-Type: application/json
+
+{
+  "identifier": "sunrise-trust",
+  "name": "Sunrise Education Trust",
+  "code": "SET",
+  "address": "FC Road, Pune",
+  "phone": "9800000001",
+  "email": "office@sunrise.test",
+  "adminEmail": "admin@sunrise.test",
+  "adminPassword": "Sunrise@123",
+  "adminFirstName": "Group",
+  "adminLastName": "Admin"
+}
+
+### Step 3 negative: bad identifier -> 400
+POST {{host}}/api/Tenants
+Authorization: Bearer {{super.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "identifier": "Sunrise Trust", "name": "Bad", "adminEmail": "x@sunrise.test", "adminPassword": "Sunrise@123" }
+
+########## PART C: SCHOOL GROUP (Group Admin, bonzer_school_sunrise_trust) ##########
+
+### Step 4: Group Admin login
+# @name ga
+POST {{host}}/api/Auth/login
+Content-Type: application/json
+
+{ "email": "admin@sunrise.test", "password": "Sunrise@123" }
+
+### Step 4: My school group
+GET {{host}}/api/SchoolGroup
+Authorization: Bearer {{ga.response.body.$.accessToken}}
+
+### Step 4: Second school group in same tenant -> 409
+POST {{host}}/api/SchoolGroup
+Authorization: Bearer {{ga.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "name": "Another group" }
+
+### Step 4: Seeded departments (copy Teaching -> @deptId)
+GET {{host}}/api/Department
+Authorization: Bearer {{ga.response.body.$.accessToken}}
+
+### Step 5: Create branch (copy id -> @branchId)
+POST {{host}}/api/Branch
+Authorization: Bearer {{ga.response.body.$.accessToken}}
+Content-Type: application/json
+
+{
+  "institutionTypeId": "{{institutionTypeId}}",
+  "mediumId": "{{mediumId}}",
+  "schooluid": "27250100101",
+  "name": "Sunrise English School - Kothrud",
+  "address": "Karve Road",
+  "city": "Pune",
+  "state": "Maharashtra",
+  "phone": "9800000002",
+  "email": "kothrud@sunrise.test"
+}
+
+### Step 5: Second branch (copy id -> @branch2Id)
+POST {{host}}/api/Branch
+Authorization: Bearer {{ga.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "institutionTypeId": "{{institutionTypeId}}", "mediumId": "{{mediumId}}", "name": "Sunrise English School - Baner", "city": "Pune", "state": "Maharashtra" }
+
+### Step 6: Academic year (copy id -> @academicYearId)
+POST {{host}}/api/AcademicYear
+Authorization: Bearer {{ga.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "yearName": "2026-27", "startDate": "2026-06-01", "endDate": "2027-04-30", "isActive": true }
+
+### Step 7: Roles (fixed list)
+GET {{host}}/api/Role
+Authorization: Bearer {{ga.response.body.$.accessToken}}
+
+### Step 7: Register Principal
+POST {{host}}/api/User/register
+Authorization: Bearer {{ga.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "firstName": "Neha", "lastName": "Kulkarni", "email": "principal@sunrise.test", "password": "Sunrise@123", "role": "Principal" }
+
+### Step 7: Register Branch Admin
+POST {{host}}/api/User/register
+Authorization: Bearer {{ga.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "firstName": "Amit", "lastName": "Joshi", "email": "branchadmin@sunrise.test", "password": "Sunrise@123", "role": "BranchAdmin" }
+
+### Step 7: Register Class Teacher
+POST {{host}}/api/User/register
+Authorization: Bearer {{ga.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "firstName": "Ritu", "lastName": "Desai", "email": "classteacher@sunrise.test", "password": "Sunrise@123", "role": "ClassTeacher" }
+
+### Step 7: Register Teacher
+POST {{host}}/api/User/register
+Authorization: Bearer {{ga.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "firstName": "Sameer", "lastName": "Khan", "email": "teacher@sunrise.test", "password": "Sunrise@123", "role": "Teacher" }
+
+### Step 7: Register Accountant
+POST {{host}}/api/User/register
+Authorization: Bearer {{ga.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "firstName": "Pooja", "lastName": "More", "email": "accountant@sunrise.test", "password": "Sunrise@123", "role": "Accountant" }
+
+### Step 7: Register Parent
+POST {{host}}/api/User/register
+Authorization: Bearer {{ga.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "firstName": "Rahul", "lastName": "Patil", "email": "parent@sunrise.test", "password": "Sunrise@123", "role": "Parent" }
+
+### Step 7 negative: unknown role -> 400
+POST {{host}}/api/User/register
+Authorization: Bearer {{ga.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "firstName": "X", "lastName": "Y", "email": "wizard@sunrise.test", "password": "Sunrise@123", "role": "Wizard" }
+
+### Step 7: Users of this tenant only
+GET {{host}}/api/User
+Authorization: Bearer {{ga.response.body.$.accessToken}}
+
+########## PART D: BRANCH (staff, classes, divisions, subjects) ##########
+
+### Step 8: Staff record for the class teacher (same email as login; copy id -> @staffId)
+POST {{host}}/api/Staff
+Authorization: Bearer {{ga.response.body.$.accessToken}}
+Content-Type: application/json
+
+{
+  "branchId": "{{branchId}}",
+  "deptId": "{{deptId}}",
+  "staffCode": "SET-T-001",
+  "designation": "Class Teacher",
+  "firstName": "Ritu",
+  "lastName": "Desai",
+  "gender": "Female",
+  "phone": "9800000010",
+  "email": "classteacher@sunrise.test",
+  "joiningDate": "2026-06-01",
+  "isActive": true
+}
+
+### Step 9: Class 1st (copy id -> @classId)
+POST {{host}}/api/Class
+Authorization: Bearer {{ga.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "branchId": "{{branchId}}", "name": "1st" }
+
+### Step 9: Class 2nd (copy id -> @higherClassId)
+POST {{host}}/api/Class
+Authorization: Bearer {{ga.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "branchId": "{{branchId}}", "name": "2nd" }
+
+### Step 10: Division 1-A (copy id -> @divisionId)
+POST {{host}}/api/Division
+Authorization: Bearer {{ga.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "classId": "{{classId}}", "branchId": "{{branchId}}", "name": "A", "code": "1A", "availableSeats": 40 }
+
+### Step 10 negative: too many seats -> 400
+POST {{host}}/api/Division
+Authorization: Bearer {{ga.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "classId": "{{classId}}", "branchId": "{{branchId}}", "name": "Z", "availableSeats": 5000 }
+
+### Step 11: Subject (copy id -> @subjectId)
+POST {{host}}/api/Subject
+Authorization: Bearer {{ga.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "name": "English", "code": "ENG" }
+
+### Step 11: Map subject to class/division
+POST {{host}}/api/ClassSubjectMap
+Authorization: Bearer {{ga.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "classId": "{{classId}}", "divisionId": "{{divisionId}}", "subjectId": "{{subjectId}}", "academicYear": "2026-27" }
+
+### Step 11: Assign class teacher
+POST {{host}}/api/ClassTeacherMap
+Authorization: Bearer {{ga.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "classId": "{{classId}}", "divisionId": "{{divisionId}}", "staffId": "{{staffId}}", "academicYear": "2026-27" }
+
+########## PART E: STUDENTS ##########
+
+### Principal login
+# @name pr
+POST {{host}}/api/Auth/login
+Content-Type: application/json
+
+{ "email": "principal@sunrise.test", "password": "Sunrise@123" }
+
+### Step 12: Admit student (copy id -> @studentId)
+POST {{host}}/api/Student
+Authorization: Bearer {{pr.response.body.$.accessToken}}
+Content-Type: application/json
+
+{
+  "branchId": "{{branchId}}",
+  "academicYearId": "{{academicYearId}}",
+  "classId": "{{classId}}",
+  "divisionId": "{{divisionId}}",
+  "firstName": "Aarav",
+  "lastName": "Patil",
+  "gender": "Male",
+  "dob": "2020-05-10",
+  "admissionDate": "2026-06-01",
+  "fatherName": "Rahul Patil",
+  "fatherPhone": "9800000020",
+  "city": "Pune",
+  "state": "Maharashtra"
+}
+
+### Step 12: List
+GET {{host}}/api/Student/paged
+Authorization: Bearer {{pr.response.body.$.accessToken}}
+
+### Step 12: Students of the class teacher
+GET {{host}}/api/Student/class-teacher/{{staffId}}
+Authorization: Bearer {{pr.response.body.$.accessToken}}
+
+### Step 13: Future DOB -> 400
+POST {{host}}/api/Student
+Authorization: Bearer {{pr.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "branchId": "{{branchId}}", "firstName": "Bad", "dob": "2030-01-01" }
+
+### Step 13: Under 2 at admission -> 400
+POST {{host}}/api/Student
+Authorization: Bearer {{pr.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "branchId": "{{branchId}}", "firstName": "Bad", "dob": "2025-01-01", "admissionDate": "2026-06-01" }
+
+### Step 14: Link parent
+POST {{host}}/api/ParentUser
+Authorization: Bearer {{pr.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "studentId": "{{studentId}}", "username": "parent@sunrise.test", "phone": "9800000020" }
+
+### Step 15.1: Suspend
+POST {{host}}/api/Student/{{studentId}}/suspend
+Authorization: Bearer {{pr.response.body.$.accessToken}}
+
+### Step 15.2: Suspend again -> 409
+POST {{host}}/api/Student/{{studentId}}/suspend
+Authorization: Bearer {{pr.response.body.$.accessToken}}
+
+### Step 15.3: Activate
+POST {{host}}/api/Student/{{studentId}}/activate
+Authorization: Bearer {{pr.response.body.$.accessToken}}
+
+### Step 15.4: Promote
+POST {{host}}/api/Student/{{studentId}}/promote?newClassId={{higherClassId}}&academicYearId={{academicYearId}}
+Authorization: Bearer {{pr.response.body.$.accessToken}}
+
+### Step 15.5: Transfer branch
+POST {{host}}/api/Student/{{studentId}}/transfer?newBranchId={{branch2Id}}
+Authorization: Bearer {{pr.response.body.$.accessToken}}
+
+### Step 15.6: Drop
+POST {{host}}/api/Student/{{studentId}}/drop
+Authorization: Bearer {{pr.response.body.$.accessToken}}
+
+### Step 15.7: Activate dropped -> 409
+POST {{host}}/api/Student/{{studentId}}/activate
+Authorization: Bearer {{pr.response.body.$.accessToken}}
+
+### Step 15.8: Re-enroll
+POST {{host}}/api/Student/{{studentId}}/re-enroll
+Authorization: Bearer {{pr.response.body.$.accessToken}}
+
+### Step 15.9: Issue TC
+POST {{host}}/api/Student/{{studentId}}/issue-tc
+Authorization: Bearer {{pr.response.body.$.accessToken}}
+
+### Step 15.11: Soft delete
+DELETE {{host}}/api/Student/{{studentId}}/soft
+Authorization: Bearer {{pr.response.body.$.accessToken}}
+
+### Step 15.11: Restore
+POST {{host}}/api/Student/{{studentId}}/restore
+Authorization: Bearer {{pr.response.body.$.accessToken}}
+
+### Step 16: Teacher login
+# @name tch
+POST {{host}}/api/Auth/login
+Content-Type: application/json
+
+{ "email": "teacher@sunrise.test", "password": "Sunrise@123" }
+
+### Step 16: Teacher cannot admit -> 403
+POST {{host}}/api/Student
+Authorization: Bearer {{tch.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "branchId": "{{branchId}}", "firstName": "Not", "lastName": "Allowed" }
+
+########## PART F: TENANT ISOLATION ##########
+
+### F1: Demo Group Admin login
+# @name demo
+POST {{host}}/api/Auth/login
+Content-Type: application/json
+
+{ "email": "groupadmin@bonzer.local", "password": "Admin@123" }
+
+### F1: Demo sees only demo students
+GET {{host}}/api/Student/paged
+Authorization: Bearer {{demo.response.body.$.accessToken}}
+
+### F2: Sunrise student from demo login -> 404
+GET {{host}}/api/Student/{{studentId}}
+Authorization: Bearer {{demo.response.body.$.accessToken}}
+
+### F3: X-Tenant is ignored for tenant users (still demo data)
+GET {{host}}/api/Branch
+Authorization: Bearer {{demo.response.body.$.accessToken}}
+X-Tenant: sunrise-trust
+
+### F4: Super Admin support access via X-Tenant
+GET {{host}}/api/Branch
+Authorization: Bearer {{super.response.body.$.accessToken}}
+X-Tenant: sunrise-trust
+
+### F5: Deactivate Sunrise
+PUT {{host}}/api/Tenants/{{tenantId}}/status
+Authorization: Bearer {{super.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "isActive": false }
+
+### F5: Sunrise login now refused
+POST {{host}}/api/Auth/login
+Content-Type: application/json
+
+{ "email": "admin@sunrise.test", "password": "Sunrise@123" }
+
+### F6: Reactivate Sunrise
+PUT {{host}}/api/Tenants/{{tenantId}}/status
+Authorization: Bearer {{super.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "isActive": true }
