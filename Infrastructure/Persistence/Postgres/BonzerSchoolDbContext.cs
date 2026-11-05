@@ -33,7 +33,6 @@ public partial class BonzerSchoolDbContext : DbContext
     }
 
     // Organization
-    public virtual DbSet<SchoolGroup> SchoolGroups { get; set; }
     public virtual DbSet<Branch> Branches { get; set; }
     public virtual DbSet<AcademicYear> AcademicYears { get; set; }
     public virtual DbSet<SchoolHoliday> SchoolHolidays { get; set; }

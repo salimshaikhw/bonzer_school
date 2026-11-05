@@ -2,8 +2,11 @@ using Application.ViewModels.InstitutionType;
 using Application.ViewModels.Medium;
 using Application.ViewModels.SchoolGroup;
 using BonzerSchool.UnitTests.TestSupport;
-using Domain.Entities.Organization;
+using Application.Abstractions.Tenancy;
+using Domain.Entities.Tenancy;
 using Infrastructure.Persistence.Repositories.Organization;
+using Infrastructure.Tenancy;
+using NSubstitute;
 using Infrastructure.Services.Organization;
 
 namespace BonzerSchool.UnitTests.Organization;
@@ -15,24 +18,28 @@ public class SchoolGroupServiceTests : IDisposable
 
     public SchoolGroupServiceTests()
     {
-        _env.Db.SchoolGroups.Add(new SchoolGroup { Id = _env.Tenant.Id, Name = "Test School Group" });
-        _env.Db.SaveChanges();
-        var repository = new SchoolGroupRepository(_env.Db, TestEnvironment.Logger<SchoolGroupRepository>());
-        _service = new SchoolGroupService(repository, _env.Mapper, _env.Cache, TestEnvironment.Logger<SchoolGroupService>(), _env.TenantContext);
+        // The school group lives in the catalog database (table "organizations"); the tenant id is its id.
+        _env.Catalog.SchoolGroups.Add(new SchoolGroup
+        {
+            Id = _env.Tenant.Id, Identifier = _env.Tenant.Identifier, Name = "Test School Group", DatabaseName = _env.Tenant.DatabaseName,
+        });
+        _env.Catalog.SchoolGroups.Add(new SchoolGroup
+        {
+            Id = Guid.NewGuid(), Identifier = "other-trust", Name = "Other Trust", DatabaseName = "bonzer_school_other_trust",
+        });
+        _env.Catalog.SaveChanges();
+        // Provisioning (database, login) is not exercised here, so those dependencies are not needed.
+        _service = new SchoolGroupService(_env.Catalog, null!, null!, null!, Substitute.For<ITenantStore>(),
+            _env.TenantContext, TestEnvironment.Logger<SchoolGroupService>());
     }
 
     [Fact]
-    public async Task A_second_school_group_cannot_be_created()
+    public async Task A_tenant_user_only_sees_their_own_group()
     {
-        await ErrorAssert.ConflictAsync(() => _service.CreateAsync(new CreateSchoolGroupInput { Name = "Other", Code = "X" }));
-        Assert.Single(_env.Db.SchoolGroups);
-    }
+        var groups = (await _service.GetAllAsync()).ToList();
 
-    [Fact]
-    public async Task The_school_group_cannot_be_deleted()
-    {
-        await ErrorAssert.ConflictAsync(() => _service.DeleteAsync(_env.Tenant.Id));
-        Assert.Single(_env.Db.SchoolGroups);
+        Assert.Single(groups);
+        Assert.Equal(_env.Tenant.Id, groups[0].Id);
     }
 
     [Fact]
@@ -45,8 +52,12 @@ public class SchoolGroupServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task Other_group_ids_are_not_found()
+    public async Task Other_groups_are_not_found_for_a_tenant_user()
     {
+        var other = _env.Catalog.SchoolGroups.Single(g => g.Identifier == "other-trust");
+
+        await ErrorAssert.NotFoundAsync(() => _service.GetByIdAsync(other.Id));
+        await ErrorAssert.NotFoundAsync(() => _service.UpdateAsync(other.Id, new UpdateSchoolGroupInput { Name = "Hijacked" }));
         await ErrorAssert.NotFoundAsync(() => _service.GetByIdAsync(Guid.NewGuid()));
     }
 

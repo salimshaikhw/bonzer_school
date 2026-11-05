@@ -34,12 +34,12 @@ Authorization: Bearer {{super.response.body.$.accessToken}}
 GET {{host}}/api/Medium
 Authorization: Bearer {{super.response.body.$.accessToken}}
 
-### Step 2: Existing tenants
-GET {{host}}/api/Tenants
+### Step 2: Existing school groups
+GET {{host}}/api/SchoolGroup
 Authorization: Bearer {{super.response.body.$.accessToken}}
 
 ### Step 3: Create school group = tenant + database bonzer_school_sunrise_trust (copy id -> @tenantId)
-POST {{host}}/api/Tenants
+POST {{host}}/api/SchoolGroup
 Authorization: Bearer {{super.response.body.$.accessToken}}
 Content-Type: application/json
 
@@ -57,7 +57,7 @@ Content-Type: application/json
 }
 
 ### Step 3 negative: bad identifier -> 400
-POST {{host}}/api/Tenants
+POST {{host}}/api/SchoolGroup
 Authorization: Bearer {{super.response.body.$.accessToken}}
 Content-Type: application/json
 
@@ -76,7 +76,7 @@ Content-Type: application/json
 GET {{host}}/api/SchoolGroup
 Authorization: Bearer {{ga.response.body.$.accessToken}}
 
-### Step 4: Second school group in same tenant -> 409
+### Step 4: Group Admin cannot create a school group -> 403
 POST {{host}}/api/SchoolGroup
 Authorization: Bearer {{ga.response.body.$.accessToken}}
 Content-Type: application/json
@@ -390,7 +390,7 @@ Authorization: Bearer {{super.response.body.$.accessToken}}
 X-Tenant: sunrise-trust
 
 ### F5: Deactivate Sunrise
-PUT {{host}}/api/Tenants/{{tenantId}}/status
+PUT {{host}}/api/SchoolGroup/{{tenantId}}/status
 Authorization: Bearer {{super.response.body.$.accessToken}}
 Content-Type: application/json
 
@@ -403,7 +403,7 @@ Content-Type: application/json
 { "email": "admin@sunrise.test", "password": "Sunrise@123" }
 
 ### F6: Reactivate Sunrise
-PUT {{host}}/api/Tenants/{{tenantId}}/status
+PUT {{host}}/api/SchoolGroup/{{tenantId}}/status
 Authorization: Bearer {{super.response.body.$.accessToken}}
 Content-Type: application/json
 

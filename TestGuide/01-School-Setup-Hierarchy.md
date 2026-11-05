@@ -4,12 +4,11 @@ This guide builds a school from nothing, in the order the system requires:
 
 ```
 Super Admin (platform)
-  └─ School Group  = "tenant"   ← its own database is created here
+  └─ School Group  (= the tenant: one row in table `organizations`, one database)
        ├─ Group Admin login
-       ├─ Branches (schools / campuses)
        ├─ Academic years
        ├─ User logins + roles (Principal, Teacher, Accountant…)
-       └─ Branch
+       └─ Branches (many per school group: schools / campuses)
             ├─ Staff records (linked to logins by email)
             ├─ Classes ── Divisions
             ├─ Subjects ── class-subject / class-teacher mapping
@@ -28,7 +27,7 @@ There is **one common database** plus **one database per school group**, all on 
 PostgreSQL server (localhost:5433)
 │
 ├── bonzer_catalog               ← COMMON database (one per installation)
-│     ├── tenants                  list of school groups + the name of each one's database
+│     ├── organizations            the school groups (= tenants) + the name of each one's database
 │     ├── AspNetUsers              ALL logins of ALL school groups (each row has tenant_id)
 │     ├── AspNetRoles / UserRoles  roles (SuperAdmin, GroupAdmin, Principal, Teacher…)
 │     ├── refresh_tokens
@@ -38,7 +37,7 @@ PostgreSQL server (localhost:5433)
 │
 ├── bonzer_school_demo           ← school group "demo" (auto-created in Development)
 ├── bonzer_school_sunrise_trust  ← school group "sunrise-trust" (you create it in Step 3)
-│     ├── school_groups            exactly 1 row, same Id as the tenant
+│     ├── (no school group table here: the group is the row in `organizations`)
 │     ├── branches, academic_years, classes, divisions, subjects
 │     ├── staff, students, parent_users
 │     ├── attendance, fees, exams, marks, certificates …
@@ -50,10 +49,10 @@ PostgreSQL server (localhost:5433)
 
 | Question | Answer |
 |---|---|
-| Is there a common database? | **Yes, `bonzer_catalog`.** It holds the tenant list, **all logins and roles**, and shared lookups. It holds no school data. |
-| When is a school group's database created? | When the Super Admin calls `POST /api/Tenants`. In that one call the API creates the database `bonzer_school_<identifier>` (hyphens become `_`), runs all migrations, seeds defaults, inserts the `school_groups` row and creates the first **Group Admin** login. |
+| Is there a common database? | **Yes, `bonzer_catalog`.** It holds the school groups (`organizations` table), **all logins and roles**, and shared lookups. It holds no school data. |
+| When is a school group's database created? | When the Super Admin calls `POST /api/SchoolGroup`. In that one call the API inserts the `organizations` row, creates the database `bonzer_school_<identifier>` (hyphens become `_`), runs all migrations, seeds defaults and creates the first **Group Admin** login. |
 | What if it fails halfway? | Everything is rolled back: the database, the login and the catalog row are removed. |
-| Can a tenant have several school groups? | No. **1 tenant = 1 school group = 1 database.** `POST /api/SchoolGroup` is refused; use `POST /api/Tenants`. |
+| Is there a separate tenant table? | **No.** The school group is the tenant: **1 school group = 1 `organizations` row = 1 database**, and it has **many branches** (`branches.group_id` holds its id). |
 | How does a request know which database to use? | The login's JWT carries a `tenant_id` claim. The API reads it on every request and connects to that tenant's database. Users cannot switch tenant. |
 | And the Super Admin? | Has no tenant. To look inside a school group they send the header `X-Tenant: <identifier>`. |
 | Where are passwords for the DB stored? | Nowhere in the catalog. The server, user and password come from the `PostgresConnection` setting; only database **names** are stored. |
@@ -76,12 +75,56 @@ PostgreSQL server (localhost:5433)
 
 | Action | Allowed roles |
 |---|---|
-| Create tenant / school group, edit institution types and mediums | SuperAdmin |
-| Edit school group, create branches | GroupAdmin |
+| Create / deactivate school group, edit institution types and mediums | SuperAdmin |
+| Edit own school group, create branches | GroupAdmin |
 | Create academic years, register users, assign roles | GroupAdmin, BranchAdmin |
 | Create classes, subjects | GroupAdmin, BranchAdmin, Principal, VicePrincipal, Hod |
 | Create / change students | GroupAdmin, BranchAdmin, Principal, VicePrincipal, ClassTeacher |
 | Read anything in own school group | Any logged-in user |
+
+---
+
+## Run sheet: every API call, in order, until configuration is complete
+
+Base URL `http://localhost:5102`. All requests send `Content-Type: application/json`, and every request except login sends `Authorization: Bearer <token>`.
+**Save each returned `id`**: the "Needs" column shows which earlier ids a call uses. Details of each call are in the Part named in the last column.
+
+| # | Login as | Method + URL | Body (key fields) | Needs | Saves | Details |
+|---|---|---|---|---|---|---|
+| 1 | none | `POST /api/Auth/login` | superadmin@bonzer.local / Admin@123 | | token (SuperAdmin) | Step 1 |
+| 2 | SuperAdmin | `GET /api/InstitutionType` | | | institutionTypeId | Step 2 |
+| 3 | SuperAdmin | `GET /api/Medium` | | | mediumId | Step 2 |
+| 4 | SuperAdmin | `POST /api/SchoolGroup` | identifier, name, code, adminEmail, adminPassword… | | schoolGroupId (= tenant id) | Step 3 |
+| 5 | none | `POST /api/Auth/login` | admin@sunrise.test / Sunrise@123 | | token (GroupAdmin) | Step 4 |
+| 6 | GroupAdmin | `GET /api/Department` | | | deptId | Step 4 |
+| 7 | GroupAdmin | `POST /api/Branch` | institutionTypeId, mediumId, schooluid, name… | 2, 3 | branchId (+ branch2Id) | Step 5 |
+| 8 | GroupAdmin | `POST /api/AcademicYear` | yearName, startDate, endDate, isActive | | academicYearId | Step 6 |
+| 9 | GroupAdmin | `POST /api/User/register` ×6 | email, password, role | | | Step 7 |
+| 10 | GroupAdmin | `POST /api/Staff` (per staff login) | branchId, deptId, email… | 6, 7 | staffId | Step 8 |
+| 11 | GroupAdmin | `POST /api/Class` ×3 | branchId, name | 7 | classId, higherClassId | Step 9 |
+| 12 | GroupAdmin | `POST /api/Division` ×2 | classId, branchId, name, code, availableSeats | 7, 11 | divisionId | Step 10 |
+| 13 | GroupAdmin | `POST /api/Subject` ×3 | name, code | | subjectId | Step 11 |
+| 14 | GroupAdmin | `POST /api/ClassSubjectMap` | classId, divisionId, subjectId, academicYear | 11–13 | | Step 11 |
+| 15 | GroupAdmin | `POST /api/ClassTeacherMap` | classId, divisionId, staffId, academicYear | 10–12 | | Step 11 |
+| 16 | GroupAdmin | `POST /api/TeacherSubjectMap` | staffId, subjectId, classId, divisionId, academicYear | 10–13 | | Step 11b |
+| 17 | GroupAdmin | `PUT /api/AttendanceHoliday/branch/{branchId}/weekly-off` | saturdayPattern, sundayOff | 7 | | Step 18 |
+| 18 | GroupAdmin | `POST /api/AttendanceHoliday/branch/{branchId}/holidays` | holidayDate, name | 7 | | Step 18 |
+| 19 | GroupAdmin | `POST /api/FeeHead` | name, accountCode | | feeHeadId | Step 19 |
+| 20 | GroupAdmin | `POST /api/FeeStructure` | classId, feeHeadId, amount | 11, 19 | | Step 19 |
+| 21 | GroupAdmin | `POST /api/ClassFeeMap` | classId, academicYearId, feeHeadId, amount, installmentNo | 8, 11, 19 | | Step 19 |
+| 22 | GroupAdmin | `POST /api/FeeInstallment` | branchId, classId, academicYearId, installmentNo, dueDate | 7, 8, 11 | | Step 19 |
+| 23 | GroupAdmin | `GET /api/ExamType` | | | examTypeId | Step 20 |
+| 24 | GroupAdmin | `GET /api/GradeMaster` | | | | Step 20 |
+| 25 | GroupAdmin | `POST /api/Exam` | name, examTypeId, academicYearId, branchId, classId, startDate, endDate | 7, 8, 11, 23 | examId | Step 20 |
+| 26 | GroupAdmin | `POST /api/ExamSubject` | examId, subjectId, totalMaxMarks, totalPassMarks, examDate… | 13, 25 | | Step 20 |
+| 27 | GroupAdmin | `POST /api/Timetable` | branchId, classId, divisionId, subjectId, teacherId, dayOfWeek, periodNo, academicYearId | 7–13 | | Step 21 |
+| 28 | Principal | `POST /api/Student` | branchId, academicYearId, classId, divisionId, firstName, dob… | 7, 8, 11, 12 | studentId | Step 12 |
+| 29 | Principal | `POST /api/ParentUser` | studentId, username, phone | 9, 28 | | Step 14 |
+
+After call 29 the school is fully configured. Everything after that in this guide (lifecycle, permissions, bulk upload, isolation) is testing.
+
+> `teacherId` in `/api/Timetable` is the **staffId** of the teacher.
+> Every id is a GUID. In `.http` files, copy each id into the matching `@variable` at the top of the file.
 
 ---
 
@@ -157,11 +200,11 @@ The Super Admin is created automatically at startup from `PlatformAdmin` setting
 |---|---|
 | `GET /api/InstitutionType` | Pre-Primary, School, Junior College. Note the **School** `id`. |
 | `GET /api/Medium` | English, Semi-English, Marathi, Hindi. Note the **English** `id`. |
-| `GET /api/Tenants` | The `demo` tenant, with `databaseName: bonzer_school_demo` |
+| `GET /api/SchoolGroup` | The `demo` school group, with `databaseName: bonzer_school_demo` |
 
-### Step 3: Create the school group (tenant), which creates its database
+### Step 3: Create the school group (= tenant), which creates its database
 
-`POST /api/Tenants`
+`POST /api/SchoolGroup` (Super Admin only)
 ```json
 {
   "identifier": "sunrise-trust",
@@ -183,17 +226,16 @@ Verify:
 
 ```powershell
 docker compose exec db psql -U postgres -c "\l"                                                   # new database listed
-docker compose exec db psql -U postgres -d bonzer_catalog -c "select identifier, database_name, is_active from tenants;"
-docker compose exec db psql -U postgres -d bonzer_school_sunrise_trust -c "select id, name from school_groups;"
+docker compose exec db psql -U postgres -d bonzer_catalog -c "select id, identifier, name, database_name, is_active from organizations;"
 ```
 
-The `school_groups.id` equals the tenant `id`.
+The `organizations.id` is the school group id and the `tenant_id` of every login of that group; branches store it as `group_id`.
 
 Negative tests (each should return **400**):
 
 | Change | Reason |
 |---|---|
-| Same `identifier` again | Tenant already exists |
+| Same `identifier` again | School group already exists |
 | `"identifier": "Sunrise Trust"` (spaces/capitals) or `"ab"` | Identifier must be 3–40 characters: lower-case letters, digits and hyphens, starting with a letter |
 | `adminEmail` already used by any login | Email already registered (emails are unique across **all** tenants, because logins live in the common DB) |
 | `"adminPassword": "123"` | Password policy |
@@ -210,9 +252,10 @@ From now on every request goes to `bonzer_school_sunrise_trust` automatically, b
 
 | Request | Expected result |
 |---|---|
-| `GET /api/SchoolGroup` | One group: Sunrise Education Trust |
-| `PUT /api/SchoolGroup/{id}` with a changed phone | **200** |
-| `POST /api/SchoolGroup` | **409**: a school group is created only with its tenant |
+| `GET /api/SchoolGroup` | Only your own group: Sunrise Education Trust |
+| `PUT /api/SchoolGroup/{id}` with a changed name or phone | **200** |
+| `PUT /api/SchoolGroup/{another group's id}` | **404** (a group admin cannot see other groups) |
+| `POST /api/SchoolGroup` | **403**: only the Super Admin creates school groups |
 | `GET /api/Branch` | Empty list (the new school has nothing yet) |
 | `GET /api/Department` | Seeded departments (Administration, Teaching…) |
 | `GET /api/ExamType`, `GET /api/FeeHead` | Seeded defaults |
@@ -233,7 +276,7 @@ From now on every request goes to `bonzer_school_sunrise_trust` automatically, b
   "email": "kothrud@sunrise.test"
 }
 ```
-Expected result: **201**. Note the **branchId**. You don't need `groupId`; it is filled from your tenant.
+Expected result: **201**. Note the **branchId**. You don't need `groupId`; it is filled with your school group's id. One school group can have many branches.
 Create a second branch (e.g. "Sunrise English School - Baner") for the transfer test later.
 
 The request is rejected if `name` is missing (**400**), or if `groupId` is set to another tenant's id.
@@ -325,6 +368,98 @@ Create 1-A and 1-B. Note **divisionId** (1-A). `availableSeats: 5000` returns **
 3. `POST /api/ClassTeacherMap` → `{ "classId": "<classId>", "divisionId": "<divisionId>", "staffId": "<class teacher staffId>", "academicYear": "2026-27" }`
 
 Check: `GET /api/ClassSubjectMap` and `GET /api/ClassTeacherMap` list the mappings.
+
+### Step 11b: Subject teacher mapping
+
+`POST /api/TeacherSubjectMap`
+```json
+{ "staffId": "<teacher staffId>", "subjectId": "<English id>", "classId": "<classId>", "divisionId": "<divisionId>", "academicYear": "2026-27" }
+```
+Create a staff record (Step 8) for `teacher@sunrise.test` first, to get this staffId.
+
+---
+
+## Part D2: Remaining school configuration (before or after admitting students)
+
+Log in as Group Admin (or Principal). Fee endpoints need a finance role (GroupAdmin has it); exam, timetable and holiday endpoints need an academic or school leadership role.
+
+### Step 18: Attendance calendar (weekly off + holidays)
+
+`PUT /api/AttendanceHoliday/branch/{branchId}/weekly-off`
+```json
+{ "saturdayPattern": "secondFourth", "sundayOff": true }
+```
+`saturdayPattern` is one of `none`, `allSaturdays`, `secondFourth`, `firstThirdFifth`.
+
+`POST /api/AttendanceHoliday/branch/{branchId}/holidays`
+```json
+{ "holidayDate": "2026-08-15", "name": "Independence Day" }
+```
+Check: `GET /api/AttendanceHoliday/branch/{branchId}/holidays?from=2026-06-01&to=2027-04-30` lists it. Remove with `DELETE /api/AttendanceHoliday/{holidayId}`.
+
+### Step 19: Fees
+
+1. **Fee head.** `GET /api/FeeHead` shows the seeded heads (e.g. Tuition). To add one:
+   `POST /api/FeeHead` → `{ "name": "Tuition Fee", "accountCode": "TUI" }`. Note **feeHeadId**.
+2. **Fee structure** (the base amount per class):
+   `POST /api/FeeStructure` → `{ "classId": "<classId>", "feeHeadId": "<feeHeadId>", "amount": 24000 }`
+3. **Class fee map** (the amount per academic year and installment):
+   `POST /api/ClassFeeMap`
+   ```json
+   { "classId": "<classId>", "academicYearId": "<academicYearId>", "feeHeadId": "<feeHeadId>", "amount": 12000, "installmentNo": 1, "academicYear": "2026-27" }
+   ```
+   Repeat with `"installmentNo": 2`.
+4. **Installment schedule:**
+   `POST /api/FeeInstallment`
+   ```json
+   { "branchId": "<branchId>", "classId": "<classId>", "academicYearId": "<academicYearId>", "installmentNo": 1, "installmentName": "Term 1", "dueDate": "2026-07-10", "lateFeeAfter": "2026-07-25" }
+   ```
+   Repeat with installment 2 (`"dueDate": "2026-12-10"`).
+
+Validation (each returns **400**): `amount` of 0 or less, missing `classId` / `feeHeadId` / `academicYearId`, `installmentNo` outside 1–24, `lateFeeAfter` before `dueDate`. A teacher login returns **403**.
+
+### Step 20: Exams
+
+1. `GET /api/ExamType` (seeded types, e.g. Unit Test, Term). Note **examTypeId**. Add one with `POST /api/ExamType` → `{ "name": "Unit Test 1", "description": "First unit test" }`.
+2. `GET /api/GradeMaster` shows the seeded grade scale. Add one with `POST /api/GradeMaster` → `{ "grade": "A1", "minPercent": 91, "maxPercent": 100 }` only if you need a custom scale.
+3. **Create the exam:** `POST /api/Exam`
+   ```json
+   {
+     "name": "Unit Test 1 - 1st",
+     "examTypeId": "<examTypeId>",
+     "academicYearId": "<academicYearId>",
+     "branchId": "<branchId>",
+     "classId": "<classId>",
+     "divisionId": "<divisionId>",
+     "startDate": "2026-09-01",
+     "endDate": "2026-09-05"
+   }
+   ```
+   Note **examId**.
+4. **Add each subject to the exam:** `POST /api/ExamSubject`
+   ```json
+   { "examId": "<examId>", "subjectId": "<English id>", "totalMaxMarks": 50, "totalPassMarks": 18, "examDate": "2026-09-01", "startTime": "09:00:00", "endTime": "10:30:00", "durationMinutes": 90 }
+   ```
+   Repeat for Mathematics and Science.
+
+Check: `GET /api/Exam` and `GET /api/ExamSubject` list them.
+
+### Step 21: Timetable
+
+`POST /api/Timetable`
+```json
+{
+  "branchId": "<branchId>",
+  "classId": "<classId>",
+  "divisionId": "<divisionId>",
+  "subjectId": "<English id>",
+  "teacherId": "<teacher staffId>",
+  "dayOfWeek": 1,
+  "periodNo": 1,
+  "academicYearId": "<academicYearId>"
+}
+```
+Use `dayOfWeek` 1 = Monday … 6 = Saturday. Repeat for each period. Check with `GET /api/Timetable`.
 
 ---
 
@@ -427,7 +562,7 @@ A disallowed step returns **409** with the reason.
 | F2 | Same user: `GET /api/Student/{Sunrise studentId}` | **404** (the id does not exist in the demo database) |
 | F3 | Same user: send header `X-Tenant: sunrise-trust` | Ignored; still demo data. Tenant users cannot switch. |
 | F4 | Super Admin with header `X-Tenant: sunrise-trust`: `GET /api/Branch` | Sunrise branches (support access) |
-| F5 | Super Admin: `PUT /api/Tenants/{sunrise id}/status` `{ "isActive": false }`, then log in as `admin@sunrise.test` | Login / calls refused; data kept |
+| F5 | Super Admin: `PUT /api/SchoolGroup/{sunrise id}/status` `{ "isActive": false }`, then log in as `admin@sunrise.test` | Login / calls refused; data kept |
 | F6 | Set it back to `{ "isActive": true }` | Sunrise works again |
 
 ---
@@ -459,7 +594,7 @@ No database is needed (the tests use an in-memory database).
 |---|---|---|
 | A4 Catalog + demo DB exist | | |
 | 1–2 Super Admin + lookups | | |
-| 3 Tenant + database created | | |
+| 3 School group + database created | | |
 | 4 Group Admin, school group | | |
 | 5 Branch | | |
 | 6 Academic year | | |
@@ -467,6 +602,11 @@ No database is needed (the tests use an in-memory database).
 | 8 Staff | | |
 | 9–10 Class, division | | |
 | 11 Subjects, mapping | | |
+| 11b Teacher-subject mapping | | |
+| 18 Weekly off + holidays | | |
+| 19 Fees (head, structure, class map, installments) | | |
+| 20 Exams (exam + exam subjects) | | |
+| 21 Timetable | | |
 | 12–13 Student create + validation | | |
 | 14 Parent link | | |
 | 15 Lifecycle | | |

@@ -7,7 +7,7 @@ namespace Domain.Entities.Organization;
 [Table("branches")]
 public partial class Branch : AuditableEntity
 {
-    [References(typeof(SchoolGroup))]
+    /// <summary>Id of the school group (catalog organizations row; shared database, so no foreign key constraint).</summary>
     public Guid? GroupId { get; set; }
 
     /// <summary>Id of a catalog institution_types row (shared database, so no foreign key constraint).</summary>

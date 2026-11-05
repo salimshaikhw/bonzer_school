@@ -8,7 +8,7 @@ namespace Infrastructure.Persistence.Catalog;
 
 /// <summary>
 /// The shared ("base") database, one per deployment. Holds what is common to every tenant:
-///   - tenants: the registry of school groups and the name of each one's database
+///   - organizations: the registry of school groups (= tenants) and the name of each one's database
 ///   - ASP.NET Identity (logins, roles) and refresh tokens; each login carries its TenantId
 ///   - shared lookups: institution_types, mediums
 ///   - OAuth 2.0 server (OpenIddict*): client applications of integrations, each bound to one tenant,
@@ -24,7 +24,7 @@ public class CatalogDbContext : IdentityDbContext<ApplicationUser, IdentityRole,
     {
     }
 
-    public virtual DbSet<Tenant> Tenants { get; set; }
+    public virtual DbSet<SchoolGroup> SchoolGroups { get; set; }
     public virtual DbSet<InstitutionType> InstitutionTypes { get; set; }
     public virtual DbSet<Medium> Mediums { get; set; }
     public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
@@ -43,7 +43,7 @@ public class CatalogDbContext : IdentityDbContext<ApplicationUser, IdentityRole,
         modelBuilder.Entity<ApplicationUser>(user =>
         {
             user.HasIndex(u => u.TenantId);
-            user.HasOne<Tenant>().WithMany().HasForeignKey(u => u.TenantId).OnDelete(DeleteBehavior.Restrict);
+            user.HasOne<SchoolGroup>().WithMany().HasForeignKey(u => u.TenantId).OnDelete(DeleteBehavior.Restrict);
         });
     }
 

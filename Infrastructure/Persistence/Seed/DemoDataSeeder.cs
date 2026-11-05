@@ -67,7 +67,7 @@ internal static class DemoDataSeeder
         }
 
         // Ids are set here (not by the database) so related rows can reference them before SaveChanges.
-        // The school_groups row was created with the tenant and has the tenant's id.
+        // GroupId is the school group (catalog organizations row), whose id is the tenant id.
         var branch = new Branch
         {
             Id = Guid.NewGuid(),

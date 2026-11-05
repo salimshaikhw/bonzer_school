@@ -1,85 +1,64 @@
+using Application.Abstractions.Services.Organization;
 using Application.Common.Constants;
-using Application.Abstractions.Services;
-using Application.ViewModels.ClassTeacherMap;
 using Application.ViewModels.SchoolGroup;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Threading.Tasks;
 
 namespace API.Controllers.Organization
 {
+    /// <summary>
+    /// School groups. A school group is the tenant: it owns one database and has many branches.
+    /// Super Admin creates and manages all of them; a tenant user sees and edits only their own.
+    /// To work inside a school group the Super Admin sends the X-Tenant header with its identifier.
+    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize] // Require authentication for all endpoints
+    [Authorize]
     public class SchoolGroupController : ControllerBase
     {
         private readonly ISchoolGroupService _service;
-        private readonly ILogger<SchoolGroupController> _logger;
 
-        public SchoolGroupController(ISchoolGroupService service, ILogger<SchoolGroupController> logger )
+        public SchoolGroupController(ISchoolGroupService service)
         {
             _service = service;
-            _logger = logger;
         }
-
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
-        {
-            var result = await _service.GetAllAsync();
-            return Ok(result);
-        }
+        public async Task<IActionResult> GetAll() => Ok(await _service.GetAllAsync());
 
+        [HttpGet("{id:guid}")]
+        public async Task<IActionResult> GetById(Guid id) => Ok(await _service.GetByIdAsync(id));
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(Guid id)
-        {
-            var result = await _service.GetByIdAsync(id);
-            if (result == null) return NotFound();
-            return Ok(result);
-        }
-
-
+        /// <summary>Creates the school group, its database and its first Group Admin login.</summary>
         [HttpPost]
-        [Authorize(Roles = RoleGroups.GroupAdminOnly)]
+        [Authorize(Roles = RoleGroups.PlatformAdmin)]
         public async Task<IActionResult> Create([FromBody] CreateSchoolGroupInput input)
         {
             var result = await _service.CreateAsync(input);
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
         }
 
+        [HttpPut("{id:guid}")]
+        [Authorize(Roles = RoleGroups.GroupAdminOnly + "," + RoleGroups.PlatformAdmin)]
+        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateSchoolGroupInput request) =>
+            Ok(await _service.UpdateAsync(id, request));
 
-        //[HttpPut("{id}")]
-        //[Authorize(Roles = "Admin")]
-        //public async Task<IActionResult> Update(Guid id , [FromBody] UpdateSchoolGroupInput input)
-        //{
-        //    var result = await _service.UpdateAsync(input);
-        //    return Ok(result);
-        //}
+        /// <summary>Deactivated school groups cannot sign in or call the API; their data is kept.</summary>
+        [HttpPut("{id:guid}/status")]
+        [Authorize(Roles = RoleGroups.PlatformAdmin)]
+        public async Task<IActionResult> SetStatus(Guid id, [FromBody] SetSchoolGroupStatusRequest request) =>
+            Ok(await _service.SetActiveAsync(id, request.IsActive));
 
+        /// <summary>Google Workspace domain / Microsoft Entra directory whose accounts may sign in with SSO.</summary>
+        [HttpPut("{id:guid}/external-login")]
+        [Authorize(Roles = RoleGroups.PlatformAdmin)]
+        public async Task<IActionResult> SetExternalLogin(Guid id, [FromBody] SetExternalLoginRequest request) =>
+            Ok(await _service.SetExternalLoginAsync(id, request));
 
-        [HttpPut("{id}")]
-        [Authorize(Roles = RoleGroups.GroupAdminOnly)]
-        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateSchoolGroupInput request)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var result = await _service.UpdateAsync(id, request);
-            if (result == null)
-                return NotFound($"School group with ID {id} not found.");
-
-            return Ok(result);
-        }
-
-
-        [HttpDelete("{id}")]
-        [Authorize(Roles = RoleGroups.GroupAdminOnly)]
-        public async Task<IActionResult> Delete(Guid id)
-        {
-            await _service.DeleteAsync(id);
-            return NoContent();
-        }
+        /// <summary>Applies pending migrations to every active school group database.</summary>
+        [HttpPost("migrate")]
+        [Authorize(Roles = RoleGroups.PlatformAdmin)]
+        public async Task<IActionResult> MigrateAll(CancellationToken cancellationToken) =>
+            Ok(await _service.MigrateAllAsync(cancellationToken));
     }
 }

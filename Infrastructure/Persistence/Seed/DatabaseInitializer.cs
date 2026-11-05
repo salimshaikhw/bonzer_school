@@ -1,6 +1,7 @@
+using Application.Abstractions.Services.Organization;
 using Application.Abstractions.Tenancy;
 using Application.Common.Constants;
-using Application.ViewModels.Tenancy;
+using Application.ViewModels.SchoolGroup;
 using Infrastructure.Persistence.Catalog;
 using Infrastructure.Security.Entities;
 using Infrastructure.Tenancy;
@@ -49,17 +50,17 @@ public static class DatabaseInitializer
         else
             await EnsureUserAsync(userManager, logger, platformEmail, platformPassword, "Super", "Admin", PlatformRoles.SuperAdmin, tenantId: null);
 
-        var tenantService = sp.GetRequiredService<ITenantService>();
+        var groupService = sp.GetRequiredService<ISchoolGroupService>();
         if (sp.GetRequiredService<IOptions<TenancyOptions>>().Value.MigrateTenantsOnStartup)
-            await tenantService.MigrateAllAsync();
+            await groupService.MigrateAllAsync();
 
         if (seedDemoData)
-            await SeedDemoTenantAsync(sp, config, logger, catalog, userManager, tenantService);
+            await SeedDemoTenantAsync(sp, config, logger, catalog, userManager, groupService);
     }
 
     private static async Task SeedDemoTenantAsync(
         IServiceProvider sp, IConfiguration config, ILogger logger,
-        CatalogDbContext catalog, UserManager<ApplicationUser> userManager, ITenantService tenantService)
+        CatalogDbContext catalog, UserManager<ApplicationUser> userManager, ISchoolGroupService groupService)
     {
         var demoPassword = config["DemoUsers:Password"];
         var groupAdminEmail = config["Admin:Email"] ?? "groupadmin@bonzer.local";
@@ -71,10 +72,10 @@ public static class DatabaseInitializer
         }
 
         var identifier = config["Seed:DemoTenant"] ?? "demo";
-        var tenant = await catalog.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Identifier == identifier);
+        var tenant = await catalog.SchoolGroups.AsNoTracking().FirstOrDefaultAsync(t => t.Identifier == identifier);
         if (tenant == null)
         {
-            await tenantService.CreateAsync(new CreateTenantRequest
+            await groupService.CreateAsync(new CreateSchoolGroupInput
             {
                 Identifier = identifier,
                 Name = "Bonzer Education Trust",
@@ -85,7 +86,7 @@ public static class DatabaseInitializer
                 AdminEmail = groupAdminEmail,
                 AdminPassword = groupAdminPassword,
             });
-            tenant = await catalog.Tenants.AsNoTracking().FirstAsync(t => t.Identifier == identifier);
+            tenant = await catalog.SchoolGroups.AsNoTracking().FirstAsync(t => t.Identifier == identifier);
         }
 
         var info = new TenantInfo(tenant.Id, tenant.Identifier, tenant.Name, tenant.DatabaseName, tenant.IsActive);

@@ -97,7 +97,7 @@ try
     // IMemoryCacheHelper is registered (scoped, tenant-prefixed keys) in AddEntityServices.
 
     // AutoMapper (adjust assemblies or profiles as needed)
-    builder.Services.AddAutoMapper(typeof(Infrastructure.Mapping.SchoolGroupProfile).Assembly);
+    builder.Services.AddAutoMapper(typeof(Infrastructure.Mapping.BranchProfile).Assembly);
     builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 
 
@@ -187,6 +187,8 @@ try
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(options =>
     {
+        options.DocumentFilter<API.Swagger.FlowOrderDocumentFilter>();
+
         var xmlFile = $"API.xml";
         var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
         if (File.Exists(xmlPath))
@@ -240,7 +242,11 @@ try
     app.UseExceptionHandler();
 
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(ui =>
+    {
+        ui.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);   // sections collapsed, in flow order
+        ui.EnablePersistAuthorization();                                       // keep the Bearer token across refreshes
+    });
 
     // Avoid redirecting local HTTP API traffic to HTTPS (breaks Vite proxy and odd clients).
     if (!app.Environment.IsDevelopment())

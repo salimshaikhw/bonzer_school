@@ -45,7 +45,7 @@ Application/
 
 Infrastructure/
   Persistence/
-    Catalog/                  CatalogDbContext: shared DB (tenants, Identity logins, refresh tokens, OpenIddict)
+    Catalog/                  CatalogDbContext: shared DB (organizations = school groups = tenants, Identity logins, refresh tokens, OpenIddict)
     Postgres/                 BonzerSchoolDbContext: one database per tenant (school group)
     Migrations/Catalog|Tenant EF Core migrations (Legacy/ is excluded from the build)
     Conventions/, Interceptors/  snake_case naming, annotation conventions, audit stamping

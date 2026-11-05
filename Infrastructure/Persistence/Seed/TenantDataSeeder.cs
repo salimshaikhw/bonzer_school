@@ -6,23 +6,14 @@ using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Persistence.Seed;
 
 /// <summary>
-/// Seeds one tenant database: its school_groups row (same Id as the catalog tenant), the legacy roles
+/// Seeds one tenant database: the legacy roles
 /// table and the default reference data each school starts with and may then edit (exam types, grades,
 /// fee heads, departments...). Idempotent: runs on provisioning and after every startup migration.
 /// </summary>
 internal static class TenantDataSeeder
 {
-    public static async Task SeedAsync(BonzerSchoolDbContext db, TenantInfo tenant, SchoolGroup? groupDetails = null)
+    public static async Task SeedAsync(BonzerSchoolDbContext db)
     {
-        if (!await db.SchoolGroups.AnyAsync(g => g.Id == tenant.Id))
-        {
-            var group = groupDetails ?? new SchoolGroup();
-            group.Id = tenant.Id;
-            group.Name ??= tenant.Name;
-            db.SchoolGroups.Add(group);
-            await db.SaveChangesAsync();
-        }
-
         // Legacy "roles" table, used by staff_roles to record a staff member's designation.
         var existingRoles = await db.SchoolRoles.Select(r => r.Name).ToListAsync();
         foreach (var role in Roles.All.Where(r => !existingRoles.Contains(r)))

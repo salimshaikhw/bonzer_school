@@ -20,7 +20,7 @@ namespace BonzerSchool.UnitTests.TestSupport;
 public sealed class TestEnvironment : IDisposable
 {
     private static readonly IMapper SharedMapper =
-        new MapperConfiguration(cfg => cfg.AddMaps(typeof(Infrastructure.Mapping.SchoolGroupProfile).Assembly)).CreateMapper();
+        new MapperConfiguration(cfg => cfg.AddMaps(typeof(Infrastructure.Mapping.BranchProfile).Assembly)).CreateMapper();
 
     public TestEnvironment()
     {
@@ -33,7 +33,7 @@ public sealed class TestEnvironment : IDisposable
         Cache = new MemoryCacheHelper(new MemoryCache(new MemoryCacheOptions()), TenantContext);
     }
 
-    /// <summary>The tenant of every test; its school group row has the same id.</summary>
+    /// <summary>The tenant of every test; its school group (catalog organizations row) has the same id.</summary>
     public TenantInfo Tenant { get; } = new(Guid.NewGuid(), "test-school", "Test School Group", "bonzer_school_test", true);
 
     public BonzerSchoolDbContext Db { get; }

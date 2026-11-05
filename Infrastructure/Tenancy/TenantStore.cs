@@ -35,12 +35,12 @@ public sealed class TenantStore(CatalogDbContext catalog, IMemoryCache cache, IO
     }
 
     private async Task<TenantInfo?> GetOrLoadAsync(
-        string key, System.Linq.Expressions.Expression<Func<Tenant, bool>> match, CancellationToken cancellationToken)
+        string key, System.Linq.Expressions.Expression<Func<SchoolGroup, bool>> match, CancellationToken cancellationToken)
     {
         if (cache.TryGetValue(key, out TenantInfo? cached))
             return cached;
 
-        var tenant = await catalog.Tenants.AsNoTracking()
+        var tenant = await catalog.SchoolGroups.AsNoTracking()
             .Where(match)
             .Select(t => new TenantInfo(t.Id, t.Identifier, t.Name, t.DatabaseName, t.IsActive))
             .FirstOrDefaultAsync(cancellationToken);

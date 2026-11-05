@@ -102,7 +102,6 @@ namespace API.Extensions
             services.AddScoped<IMediumRepository, MediumRepository>();
             services.AddScoped<IPaymentRepository, PaymentRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
-            services.AddScoped<ISchoolGroupRepository, SchoolGroupRepository>();
             services.AddScoped<ITimetableRepository, TimetableRepository>();
             services.AddScoped<ITeacherSubjectMapRepository, TeacherSubjectMapRepository>();
             services.AddMemoryCache();
@@ -131,7 +130,6 @@ namespace API.Extensions
             services.AddScoped<IStaffRoleRepository, StaffRoleRepository>();
             services.AddScoped<IStudentResultRepository, StudentResultRepository>();
             services.AddScoped<IStudentSubjectRepository, StudentSubjectRepository>();
-            services.AddScoped<ISchoolGroupService, SchoolGroupService>();
             services.AddScoped<IMemoryCacheHelper, MemoryCacheHelper>();
 
             services.AddScoped<ITcCertificateRepository, TcCertificateRepository>();

@@ -51,7 +51,7 @@ public class JwtTokenService : IJwtTokenService
         // The tenant claim is what the API uses to pick the tenant database; never taken from the request.
         if (user.TenantId is { } tenantId)
         {
-            var identifier = await _dbContext.Tenants.Where(t => t.Id == tenantId).Select(t => t.Identifier).FirstOrDefaultAsync().ConfigureAwait(false);
+            var identifier = await _dbContext.SchoolGroups.Where(t => t.Id == tenantId).Select(t => t.Identifier).FirstOrDefaultAsync().ConfigureAwait(false);
             claims.Add(new Claim(TenantClaimTypes.TenantId, tenantId.ToString()));
             claims.Add(new Claim(TenantClaimTypes.Tenant, identifier ?? string.Empty));
         }

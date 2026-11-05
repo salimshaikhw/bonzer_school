@@ -220,7 +220,7 @@ public class AuthController : ControllerBase
         if (user?.TenantId is not { } tenantId)
             return null; // no login, or a platform user (must link explicitly)
 
-        var tenant = await _db.Tenants.AsNoTracking()
+        var tenant = await _db.SchoolGroups.AsNoTracking()
             .Where(t => t.Id == tenantId)
             .Select(t => new { t.GoogleWorkspaceDomain, t.MicrosoftEntraTenantId })
             .FirstOrDefaultAsync(cancellationToken);

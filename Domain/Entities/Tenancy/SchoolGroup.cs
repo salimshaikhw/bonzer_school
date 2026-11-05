@@ -6,14 +6,15 @@ using Microsoft.EntityFrameworkCore;
 namespace Domain.Entities.Tenancy;
 
 /// <summary>
-/// Catalog table: one row per tenant (school group / trust). Each tenant's school data lives in its own
-/// PostgreSQL database named <see cref="DatabaseName"/>, on the server from ConnectionStrings:PostgresConnection.
-/// The tenant's school_groups row uses the same Id.
+/// Catalog table "organizations": one row per school group (trust). A school group IS the tenant: its school data
+/// (branches, classes, students...) lives in its own PostgreSQL database named <see cref="DatabaseName"/>,
+/// on the server from ConnectionStrings:PostgresConnection. A school group has many branches
+/// (schools / campuses); every branch row carries this id as its GroupId.
 /// </summary>
-[Table("tenants")]
+[Table("organizations")]
 [Index(nameof(Identifier), IsUnique = true)]
 [Index(nameof(DatabaseName), IsUnique = true)]
-public class Tenant : AuditableEntity
+public class SchoolGroup : AuditableEntity
 {
     /// <summary>URL-safe key, e.g. "bonzer-trust". Used in the X-Tenant header and in the database name.</summary>
     [Required]
@@ -24,12 +25,23 @@ public class Tenant : AuditableEntity
     [MaxLength(200)]
     public string Name { get; set; } = string.Empty;
 
+    [MaxLength(50)]
+    public string? Code { get; set; }
+
+    public string? Address { get; set; }
+
+    [MaxLength(20)]
+    public string? Phone { get; set; }
+
+    [MaxLength(150)]
+    public string? Email { get; set; }
+
     /// <summary>Only the database name is stored; server and credentials come from configuration.</summary>
     [Required]
     [MaxLength(63)]
     public string DatabaseName { get; set; } = string.Empty;
 
-    /// <summary>Inactive tenants cannot sign in or call the API.</summary>
+    /// <summary>Inactive school groups cannot sign in or call the API.</summary>
     [DefaultValue(true)]
     public bool IsActive { get; set; } = true;
 

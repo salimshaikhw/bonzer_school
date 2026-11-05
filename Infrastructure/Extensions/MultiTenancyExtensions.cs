@@ -2,7 +2,7 @@ using Application.Abstractions.Tenancy;
 using Infrastructure.Persistence.Catalog;
 using Infrastructure.Persistence.Interceptors;
 using Infrastructure.Persistence.Postgres;
-using Infrastructure.Services.Tenancy;
+using Infrastructure.Services.Organization;
 using Infrastructure.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -28,7 +28,7 @@ public static class MultiTenancyExtensions
         services.AddScoped<TenantContext>();
         services.AddScoped<ITenantContext>(sp => sp.GetRequiredService<TenantContext>());
         services.AddScoped<ITenantStore, TenantStore>();
-        services.AddScoped<ITenantService, TenantService>();
+        services.AddScoped<ISchoolGroupService, SchoolGroupService>();
 
         // Fills CreatedAt/CreatedBy/UpdatedAt/UpdatedBy on every SaveChanges (see AuditableEntity).
         services.AddSingleton<AuditableEntityInterceptor>();
